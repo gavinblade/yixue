@@ -591,7 +591,7 @@ function transSystem(box, srcLang) {
   const from = LANG_NAME[srcLang];
   const style = {
     ja_casual: `把用户发来的${from}翻译成自然的日语口语（タメ口，朋友、家人之间平时说话的方式）。要像日本人日常真的会说出来的话：优先用地道的口语表达、缩约形和自然的语气词，不要生硬直译，不要书面语。`,
-    ja_polite: `把用户发来的${from}翻译成自然、得体的日语敬语。以です・ます体为基础，适合对同事、客户、店员或不熟的人说；场合需要时自然使用尊敬语和谦让语，但不要堆砌、不要过度客气，要像日本职场里真实的说法。`,
+    ja_polite: `把用户发来的${from}翻译成自然、得体的日语敬语。以です・ます体为基础，适合对同事、客户、店员或不熟的人说；场合需要时自然使用尊敬语和谦让语（自己的动作用谦让语，对方的动作用尊敬语），但不要堆砌、不要过度客气，要像日本职场里真实的说法，避免照搬中文句子结构。`,
     en_casual: `把用户发来的${from}翻译成自然的美式英语口语。要像美国人日常真的会说的话：地道的搭配、口语化的节奏和缩写，不要翻译腔，不要过于正式。`,
     zh: `把用户发来的${from}翻译成自然的简体中文。要像中国人平时说话的方式，不要翻译腔，保留原文的语气和分寸。`
   }[box.key];
@@ -601,6 +601,11 @@ function transSystem(box, srcLang) {
 - 保持原文的语气、信息量和分句；原文有几句，译文就对应几句。
 - 原文如果只是一个词或短语，就给出最贴切的对应说法；如果有几种常见说法，最多给 3 个，用「 / 」分隔。
 - 原文如果有多种解读，选最常见、最自然的那一种，不要在译文里说明。
+- 文化套话按功能对等处理，绝不直译。判断标准：目标语言的母语者在同样场合会不会这么说。例如：
+  · 日语开头的「お疲れ様です」只是打招呼，英语里不能译成 "thanks for your hard work"，应改成 "Hey," / "Hi," 或直接省略；中文可译「辛苦了」或省略。
+  · 「よろしくお願いします」英语里按场合译成 "Thanks in advance." / "Looking forward to it." / "Nice to meet you." 等，不要译成 "please treat me well"。
+  · 中文「辛苦了」译成日语是「お疲れ様です」，译成英语多数场合省略或用 "Thanks for doing that."。
+  · 目标语言没有对应习惯时，省略或并入上下文，不要硬造一句。
 ${box.lang === 'ja' ? '- ' + RUBY_RULE : ''}`.trim();
 }
 function anaSystem() {
@@ -613,7 +618,8 @@ function anaSystem() {
 - 日语讲解面向 N1 学习者：不讲基础助词、基本活用等入门内容，聚焦语感差异、口语缩约、语体与敬语层级、日本人实际常用的说法、中国学习者容易犯的错误。
 - 英语讲解相对简洁：只讲地道搭配、口语化表达、语气差别和中式英语陷阱，不讲基础语法。
 - 中文文本只在必要时点评表达选择。
-- 例句要短、贴近日常生活，每句附中文翻译。`;
+- 例句要短、贴近日常生活，每句附中文翻译。
+- 常规分析要精炼：重点词 3～6 个，语法点 2～4 个，全文控制在 600 字左右，只讲这段文本里真正值得注意的点；深究模式不受此限制。`;
 }
 function anaUser({ text, lang, mode, isTranslation, srcText, srcLang }) {
   const L = LANG_NAME[lang];
@@ -797,14 +803,14 @@ async function analyze(target, mode = 'normal', { toggle = false } = {}) {
 
   const isSrc = target === 'src';
   let text, lang;
-  if (isSrc) { text = item.src; lang = item.lang; }
+  if (isSrc) { text = item.src; lang = item.lang; if (lang === 'zh') mode = 'deep'; }
   else {
     text = item.outputs[target]; lang = state.plan.find(b => b.key === target)?.lang;
     if (!text) { toast('等译文出来再分析'); return; }
   }
 
   panel.hidden = false;
-  titleEl.textContent = isSrc ? (mode === 'deep' ? '语法深究' : '原文分析') : '译文分析';
+  titleEl.textContent = isSrc ? (mode === 'deep' ? (lang === 'zh' ? '对应说法' : '语法深究') : '原文分析') : '译文分析';
 
   const cached = item.analyses[target];
   if (cached && cached.mode === mode && cached.md) {
