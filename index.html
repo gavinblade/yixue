@@ -205,6 +205,28 @@ body:not(.furi) .srcview rt{display:none}
 hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
 .sect{font-size:13px;font-weight:600;color:var(--accent);margin-top:4px}
 
+/* 模型切换 */
+.pillwrap{position:relative;margin-right:2px}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:5px 8px 5px 12px;font-size:12px;color:var(--text);max-width:48vw}
+.pill:hover{background:var(--hover)}
+.pill .pname{font-weight:600;color:var(--accent);white-space:nowrap}
+.pill .pmodel{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+.pill.warn .pname{color:var(--danger)}
+.pill svg{color:var(--muted);flex:none}
+@media(max-width:560px){.pill .pmodel{display:none}.pill{padding:5px 6px 5px 10px}}
+.menu{position:absolute;right:0;top:calc(100% + 6px);min-width:250px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:6px;z-index:35}
+.mitem{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;padding:8px 10px;border-radius:8px;font-size:14px}
+.mitem:hover{background:var(--hover)}
+.mitem.on{background:var(--accent-weak)}
+.mitem.on span{color:var(--accent);font-weight:600}
+.mitem small{font-size:12px;color:var(--muted);word-break:break-all}
+.msep{border-top:1px solid var(--line);margin:6px 0}
+.mempty{padding:10px;font-size:13px;color:var(--muted)}
+.field .row select{flex:1;min-width:0}
+.field .row .ghost{white-space:nowrap}
+.think-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px}
+.think-row select{width:auto !important;padding:6px 28px 6px 8px !important}
+
 /* toast */
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
   background:#323232;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;z-index:50;opacity:0;transition:all .2s;pointer-events:none;max-width:90vw}
@@ -219,6 +241,10 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
 <header class="topbar">
   <div class="brand"><span class="logo">译</span><span>译学</span></div>
   <div class="spacer"></div>
+  <div class="pillwrap">
+    <button class="pill" id="modelPill" title="切换模型接口"><span class="pname" id="pillName"></span><span class="pmodel" id="pillModel"></span><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M7 10l5 5 5-5z"/></svg></button>
+    <div class="menu" id="modelMenu" hidden></div>
+  </div>
   <button class="iconbtn" id="btnFuri" title="显示 / 隐藏振假名"><span class="kana">あ</span></button>
   <button class="iconbtn" id="btnHistory" title="历史与收藏"></button>
   <button class="iconbtn" id="btnTheme" title="切换主题"></button>
@@ -227,7 +253,7 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
 
 <main class="layout">
   <div class="banner" id="banner" hidden>
-    <span>还没有填写 <b>DeepSeek API Key</b>，翻译前请先在设置里填入。Key 只保存在本设备浏览器里。</span>
+    <span>还没有配置模型接口。翻译前请先在设置里选择接口并填入 <b>API Key</b>，Key 只保存在本设备浏览器里。</span>
     <button class="pbtn" id="bannerBtn">去设置</button>
   </div>
 
@@ -274,33 +300,41 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
     <div class="mbody">
       <div class="sect">模型接口</div>
       <div class="field">
-        <label for="sApiKey">DeepSeek API Key</label>
+        <label for="sProvider">当前使用的接口</label>
+        <select id="sProvider"></select>
+        <div class="help">每个接口的 Key 和模型分别保存；填好多个后，顶栏可随时切换对比。</div>
+      </div>
+      <div class="field">
+        <label for="sApiKey">API Key</label>
         <div class="row">
-          <input id="sApiKey" type="password" placeholder="sk-…" autocomplete="off">
+          <input id="sApiKey" type="password" placeholder="粘贴该接口的 API Key" autocomplete="off">
           <button class="ghost" id="btnEye" type="button">显示</button>
         </div>
-        <div class="help">在 <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">platform.deepseek.com</a> 创建。Key 只存在当前设备的浏览器里，不会上传到任何地方，每台设备填一次。</div>
+        <div class="help" id="keyHelp"></div>
       </div>
       <div class="field">
         <label for="sModel">模型</label>
-        <select id="sModel">
-          <option value="deepseek-flash">deepseek-flash（默认，快而便宜）</option>
-          <option value="deepseek-v4-pro">deepseek-v4-pro（更强，稍慢稍贵）</option>
-        </select>
-      </div>
-      <label class="check"><input type="checkbox" id="sThinkTrans"><span>翻译时开启思考模式<br><span class="sub">更慢，大多数日常句子不需要。关闭时翻译几秒内出结果。</span></span></label>
-      <div class="field">
-        <label for="sThinkAna">语法分析时的思考模式</label>
-        <select id="sThinkAna">
-          <option value="off">关闭（最快）</option>
-          <option value="low">低（稍慢，分析更稳）</option>
-          <option value="high">高（明显变慢）</option>
-        </select>
+        <div class="row">
+          <select id="sModel"></select>
+          <button class="ghost" id="btnFetchModels" type="button">拉取列表</button>
+        </div>
+        <input id="sModelCustom" type="text" placeholder="输入模型名，例如 gpt-6.1-sol" autocomplete="off" hidden>
+        <div class="help"><span id="modelsStatus"></span>「拉取列表」用你的 Key 从该接口读取当前可用模型，出了新模型不用更新网页。</div>
       </div>
       <div class="field">
         <label for="sBaseUrl">API 地址（高级）</label>
-        <input id="sBaseUrl" type="text" placeholder="https://api.deepseek.com">
-        <div class="help">兼容 OpenAI 格式的接口都可以填在这里。一般不用改。</div>
+        <input id="sBaseUrl" type="text" placeholder="">
+        <div class="help" id="baseHelp"></div>
+      </div>
+      <div class="field">
+        <label>思考强度</label>
+        <div class="think-row">
+          <span>翻译</span>
+          <select id="sThinkTrans"><option value="off">关</option><option value="low">低</option><option value="high">高</option></select>
+          <span>语法分析</span>
+          <select id="sThinkAna"><option value="off">关</option><option value="low">低</option><option value="high">高</option></select>
+        </div>
+        <div class="help">「关」最快，日常翻译够用；分析想更稳可开「低」。Claude 5 系列无法完全关闭思考，「关」等于最低强度。模型不支持的档位会自动回退。</div>
       </div>
       <div class="row" style="display:flex;gap:8px;align-items:center">
         <button class="ghost" id="btnTest" type="button">测试连接</button>
@@ -353,14 +387,18 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
 /* ============================================================
    译学 · 单文件应用
    ============================================================ */
-const APP_VERSION = '1.0.0';
-const DEFAULT_BASE = 'https://api.deepseek.com';
+const APP_VERSION = '1.1.0';
 const LS = { settings: 'yx.settings', history: 'yx.history', deleted: 'yx.deleted', lastSync: 'yx.lastSync' };
-const DEFAULTS = {
-  apiKey: '', baseUrl: DEFAULT_BASE, model: 'deepseek-flash',
-  thinkTrans: false, thinkAna: 'off', auto: true, theme: 'auto', furi: false,
-  gistToken: '', gistId: ''
+/* 支持的模型接口。模型列表可在设置里从各家接口实时拉取，这里只是默认候选。 */
+const PROVIDERS = {
+  deepseek: { name: 'DeepSeek', kind: 'openai-chat', base: 'https://api.deepseek.com', keyUrl: 'https://platform.deepseek.com/api_keys', presets: ['deepseek-flash', 'deepseek-v4-pro'], note: '便宜、快，译文自然度一般。' },
+  openai: { name: 'OpenAI', kind: 'openai-responses', base: 'https://api.openai.com/v1', keyUrl: 'https://platform.openai.com/api-keys', presets: ['gpt-6.1-sol', 'gpt-6-astra', 'gpt-6.1-terra', 'gpt-6-luna'], note: 'GPT 系列。' },
+  gemini: { name: 'Gemini', kind: 'gemini', base: 'https://generativelanguage.googleapis.com/v1beta', keyUrl: 'https://aistudio.google.com/apikey', presets: ['gemini-3.8-flash', 'gemini-4-argon', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash'], note: 'Google 的模型，Key 在 AI Studio 申请。' },
+  anthropic: { name: 'Claude', kind: 'anthropic', base: 'https://api.anthropic.com/v1', keyUrl: 'https://console.anthropic.com/settings/keys', presets: ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-5-5'], note: 'Anthropic 的模型，中日文都很自然。' },
+  custom: { name: '自定义', kind: 'openai-chat', base: '', keyUrl: '', presets: [], note: '任何 OpenAI 兼容接口（OpenRouter、硅基流动、本地 Ollama 等）。' }
 };
+const THINK_LABEL = { off: '关', low: '低', high: '高' };
+const DEFAULTS = { provider: 'deepseek', providers: {}, thinkTrans: 'off', thinkAna: 'off', auto: true, theme: 'auto', furi: false, gistToken: '', gistId: '' };
 const LANG_NAME = { zh: '中文', ja: '日语', en: '英语' };
 const SPEECH_LANG = { zh: 'zh-CN', ja: 'ja-JP', en: 'en-US' };
 
@@ -426,7 +464,7 @@ const ICONS = {
 };
 
 /* ---------- 状态 ---------- */
-let settings = Object.assign({}, DEFAULTS, loadJSON(LS.settings, {}));
+let settings = loadSettings();
 let history = loadJSON(LS.history, []);
 let deleted = loadJSON(LS.deleted, []);
 const state = {
@@ -529,60 +567,228 @@ function md(src) {
   return out;
 }
 
-/* ---------- API ---------- */
+/* ---------- 设置读取与接口选择 ---------- */
+function loadSettings() {
+  const raw = loadJSON(LS.settings, {});
+  const s = Object.assign({}, DEFAULTS, raw);
+  s.providers = Object.assign({}, raw.providers || {});
+  if (raw.apiKey && !(raw.providers?.deepseek?.apiKey || raw.providers?.custom?.apiKey)) {   // 旧版（单接口）设置迁移
+    const base = raw.baseUrl || PROVIDERS.deepseek.base;
+    if (/deepseek/i.test(base)) s.providers.deepseek = { apiKey: raw.apiKey || '', model: raw.model || 'deepseek-flash', baseUrl: '' };
+    else { s.providers.custom = { apiKey: raw.apiKey || '', model: raw.model || '', baseUrl: base }; s.provider = 'custom'; }
+  }
+  if (typeof s.thinkTrans === 'boolean') s.thinkTrans = s.thinkTrans ? 'low' : 'off';
+  if (!THINK_LABEL[s.thinkTrans]) s.thinkTrans = 'off';
+  if (!THINK_LABEL[s.thinkAna]) s.thinkAna = 'off';
+  for (const id of Object.keys(PROVIDERS)) s.providers[id] = Object.assign({ apiKey: '', model: PROVIDERS[id].presets[0] || '', baseUrl: '', models: [] }, s.providers[id] || {});
+  if (!PROVIDERS[s.provider]) s.provider = 'deepseek';
+  delete s.apiKey; delete s.baseUrl; delete s.model;
+  return s;
+}
+function provBase(id, conf) { conf = conf || settings.providers[id]; return (conf.baseUrl || PROVIDERS[id].base || '').replace(/\/+$/, ''); }
+function hasKey(id = settings.provider) { const c = settings.providers[id]; return !!(c && c.apiKey && c.model && (PROVIDERS[id].base || c.baseUrl)); }
+function modelLabel(id = settings.provider) { return PROVIDERS[id].name + ' · ' + (settings.providers[id].model || '?'); }
+
+/* ---------- API：统一的流式调用，按接口类型分发 ---------- */
 function apiErrorText(status, msg) {
-  if (status === 401) return 'API Key 无效或未填写，请到设置检查。';
-  if (status === 402) return '账户余额不足，请到 DeepSeek 平台充值。';
-  if (status === 429) return '请求过于频繁，稍等几秒再试。';
+  if (status === 401 || status === 403) return 'API Key 无效、无权限或未填写，请到设置检查。' + (msg ? '（' + msg + '）' : '');
+  if (status === 402) return '账户余额不足，请到该平台充值。';
+  if (status === 404) return '模型不存在或接口地址不对：' + msg;
+  if (status === 429) return '请求过于频繁或额度用尽，稍等再试。' + (msg ? '（' + msg + '）' : '');
   if (status >= 500) return '服务端暂时出错，请稍后重试。';
   return `请求失败（${status}）：${msg}`;
 }
-function isDeepSeek() { return /deepseek/i.test(settings.baseUrl || DEFAULT_BASE); }
-async function streamChat({ messages, thinking = false, effort = null, maxTokens = 4096, signal, onDelta, onReasoning }) {
-  const base = (settings.baseUrl || DEFAULT_BASE).replace(/\/+$/, '');
-  const body = { model: settings.model, messages, stream: true, max_tokens: maxTokens };
-  if (isDeepSeek()) {
-    body.thinking = { type: thinking ? 'enabled' : 'disabled' };
-    if (thinking && effort) body.reasoning_effort = effort;
-  }
+async function doFetch(url, { headers, body, signal }) {
   let res;
-  try {
-    res = await fetch(base + '/chat/completions', {
-      method: 'POST', signal,
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + settings.apiKey },
-      body: JSON.stringify(body)
-    });
-  } catch (e) {
-    if (e.name === 'AbortError') throw e;
-    throw new Error('网络连接失败，请检查网络或 API 地址。');
-  }
+  try { res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), signal }); }
+  catch (e) { if (e.name === 'AbortError') throw e; throw new Error('网络连接失败，请检查网络或 API 地址。'); }
   if (!res.ok) {
-    let msg = res.statusText;
-    try { const j = await res.json(); msg = j.error?.message || JSON.stringify(j); } catch { }
-    throw new Error(apiErrorText(res.status, msg));
+    let msg = res.statusText || '';
+    try {
+      const j = await res.json();
+      msg = j.error?.message || j.message || (Array.isArray(j) && j[0]?.error?.message) || JSON.stringify(j).slice(0, 300);
+    } catch { }
+    const err = new Error(apiErrorText(res.status, msg)); err.status = res.status; throw err;
   }
-  const reader = res.body.getReader();
-  const dec = new TextDecoder();
-  let buf = '';
+  return res;
+}
+/* 解析 SSE：onEvent(eventName, dataString)，返回 false 表示结束 */
+async function readSSE(res, onEvent) {
+  const reader = res.body.getReader(), dec = new TextDecoder();
+  let buf = '', ev = null;
   while (true) {
     const { value, done } = await reader.read();
     if (done) break;
     buf += dec.decode(value, { stream: true });
     let idx;
     while ((idx = buf.indexOf('\n')) >= 0) {
-      const line = buf.slice(0, idx).trim(); buf = buf.slice(idx + 1);
-      if (!line.startsWith('data:')) continue;
-      const data = line.slice(5).trim();
-      if (data === '[DONE]') return;
-      try {
-        const j = JSON.parse(data);
-        const d = j.choices?.[0]?.delta;
-        if (!d) continue;
-        if (d.reasoning_content) onReasoning?.(d.reasoning_content);
-        if (d.content) onDelta(d.content);
-      } catch { }
+      let line = buf.slice(0, idx); buf = buf.slice(idx + 1);
+      if (line.endsWith('\r')) line = line.slice(0, -1);
+      if (line.startsWith('event:')) { ev = line.slice(6).trim(); continue; }
+      if (line.startsWith('data:')) { if (onEvent(ev, line.slice(5).trim()) === false) return; continue; }
+      if (line === '') ev = null;
     }
   }
+}
+function parseJSON(s) { try { return JSON.parse(s); } catch { return null; } }
+function uniq(arr) { const seen = new Set(); return arr.filter(x => { const k = JSON.stringify(x); if (seen.has(k)) return false; seen.add(k); return true; }); }
+
+/* 每种接口：bodies(ctx) 返回按优先级排列的候选请求（前面的带思考参数，模型不支持时回退到后面的）；run 负责发送与解析 */
+const ADAPTERS = {
+  'openai-chat': {
+    bodies(c) {
+      const base = { model: c.model, messages: [{ role: 'system', content: c.system }, { role: 'user', content: c.user }], stream: true, max_tokens: c.maxTokens };
+      const isDS = c.id === 'deepseek' || /deepseek/i.test(c.base);
+      const list = [];
+      if (isDS) { const b = { ...base, thinking: { type: c.think === 'off' ? 'disabled' : 'enabled' } }; if (c.think !== 'off') b.reasoning_effort = c.think; list.push(b); }
+      else if (c.think !== 'off') list.push({ ...base, reasoning_effort: c.think });
+      list.push(base);
+      return uniq(list).map(body => ({ url: c.base + '/chat/completions', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + c.apiKey }, body }));
+    },
+    async run(c, req) {
+      const res = await doFetch(req.url, { ...req, signal: c.signal });
+      await readSSE(res, (ev, data) => {
+        if (data === '[DONE]') return false;
+        const j = parseJSON(data); if (!j) return;
+        if (j.error) throw new Error(j.error.message || '接口返回错误');
+        const d = j.choices?.[0]?.delta; if (!d) return;
+        if (d.reasoning_content) c.onReasoning?.(d.reasoning_content);
+        if (d.content) c.onDelta(d.content);
+      });
+    }
+  },
+  'openai-responses': {
+    bodies(c) {
+      const base = { model: c.model, instructions: c.system, input: c.user, stream: true, max_output_tokens: c.maxTokens };
+      const efforts = c.think === 'off' ? ['none', 'low'] : [c.think];
+      const list = efforts.map(e => ({ ...base, reasoning: { effort: e } })); list.push(base);
+      return list.map(body => ({ url: c.base + '/responses', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + c.apiKey }, body }));
+    },
+    async run(c, req) {
+      const res = await doFetch(req.url, { ...req, signal: c.signal });
+      let got = false, refusal = '';
+      await readSSE(res, (ev, data) => {
+        const j = parseJSON(data); if (!j) return;
+        switch (j.type) {
+          case 'response.output_text.delta': got = true; c.onDelta(j.delta || ''); break;
+          case 'response.reasoning_summary_text.delta': c.onReasoning?.(j.delta || ''); break;
+          case 'response.refusal.delta': refusal += j.delta || ''; break;
+          case 'error': throw new Error(j.message || j.error?.message || '接口返回错误');
+          case 'response.failed': throw new Error(j.response?.error?.message || '请求失败');
+          case 'response.incomplete': if (!got) throw new Error('输出被截断：' + (j.response?.incomplete_details?.reason || '')); return false;
+          case 'response.completed': return false;
+        }
+      });
+      if (!got && refusal) throw new Error('模型拒绝了这次请求：' + refusal);
+    }
+  },
+  'gemini': {
+    bodies(c) {
+      const base = { systemInstruction: { parts: [{ text: c.system }] }, contents: [{ role: 'user', parts: [{ text: c.user }] }], generationConfig: { maxOutputTokens: c.maxTokens } };
+      const is25 = /gemini-2\.5/.test(c.model);
+      let tcs;
+      if (c.think === 'off') tcs = is25 ? [{ thinkingBudget: 0 }] : [{ thinkingLevel: 'minimal' }, { thinkingLevel: 'low' }];
+      else if (c.think === 'low') tcs = is25 ? [{ thinkingBudget: 1024 }] : [{ thinkingLevel: 'low' }];
+      else tcs = is25 ? [{ thinkingBudget: -1 }] : [{ thinkingLevel: 'high' }];
+      const list = tcs.map(tc => ({ ...base, generationConfig: { ...base.generationConfig, thinkingConfig: tc } })); list.push(base);
+      const url = `${c.base}/models/${encodeURIComponent(c.model)}:streamGenerateContent?alt=sse`;
+      return list.map(body => ({ url, headers: { 'Content-Type': 'application/json', 'x-goog-api-key': c.apiKey }, body }));
+    },
+    async run(c, req) {
+      const res = await doFetch(req.url, { ...req, signal: c.signal });
+      let got = false;
+      await readSSE(res, (ev, data) => {
+        const j = parseJSON(data); if (!j) return;
+        if (j.error) throw new Error(j.error.message || '接口返回错误');
+        const cand = j.candidates?.[0];
+        if (!cand && j.promptFeedback?.blockReason) throw new Error('请求被安全策略拦截：' + j.promptFeedback.blockReason);
+        for (const part of cand?.content?.parts || []) {
+          if (!part.text) continue;
+          if (part.thought) c.onReasoning?.(part.text); else { got = true; c.onDelta(part.text); }
+        }
+        const fr = cand?.finishReason;
+        if (fr && fr !== 'STOP' && fr !== 'MAX_TOKENS' && !got) throw new Error('生成被中止：' + fr);
+      });
+    }
+  },
+  'anthropic': {
+    bodies(c) {
+      const base = { model: c.model, max_tokens: c.maxTokens, system: c.system, messages: [{ role: 'user', content: c.user }], stream: true };
+      const headers = { 'Content-Type': 'application/json', 'x-api-key': c.apiKey, 'anthropic-version': '2026-10-21', 'anthropic-dangerous-direct-browser-access': 'true' };
+      const legacy = /claude-(opus|sonnet|haiku)-4|claude-3/.test(c.model);   // 4.x 及更早：默认不思考
+      const list = [];
+      if (!legacy) {
+        const effort = c.think === 'high' ? 'high' : 'low';                    // 5.x 无法关闭思考，「关」= 最低强度
+        const b = { ...base, output_config: { effort } };
+        if (/claude-(opus-5|sonnet-5-5|fable)/.test(c.model)) {               // 安全分类器误拒时由服务端自动换模型重试
+          list.push({ headers: { ...headers, 'anthropic-beta': 'server-side-fallback-2026-07-01' }, body: { ...b, fallbacks: 'default' } });
+        }
+        list.push({ headers, body: b });
+      } else if (c.think !== 'off') {
+        list.push({ headers, body: { ...base, thinking: { type: 'adaptive' }, output_config: { effort: c.think } } });
+      }
+      list.push({ headers, body: base });
+      return list.map(x => ({ url: c.base + '/messages', ...x }));
+    },
+    async run(c, req) {
+      const res = await doFetch(req.url, { ...req, signal: c.signal });
+      let got = false, refused = false;
+      await readSSE(res, (ev, data) => {
+        const j = parseJSON(data); if (!j) return;
+        switch (j.type) {
+          case 'content_block_delta':
+            if (j.delta?.type === 'text_delta') { got = true; c.onDelta(j.delta.text); }
+            else if (j.delta?.type === 'thinking_delta') c.onReasoning?.(j.delta.thinking || '');
+            break;
+          case 'message_delta': if (j.delta?.stop_reason === 'refusal') refused = true; break;
+          case 'error': throw new Error(j.error?.message || '接口返回错误');
+          case 'message_stop': return false;
+        }
+      });
+      if (refused && !got) throw new Error('模型拒绝了这次请求（安全分类器）。可以换个模型或换种说法再试。');
+    }
+  }
+};
+async function streamChat({ system, user, think = 'off', maxTokens = 4096, signal, onDelta, onReasoning, providerId, conf }) {
+  const id = providerId || settings.provider;
+  const P = PROVIDERS[id];
+  conf = conf || settings.providers[id];
+  if (!conf.apiKey) throw new Error('还没有填写 ' + P.name + ' 的 API Key，请到设置里填入。');
+  if (!conf.model) throw new Error('还没有为 ' + P.name + ' 选择模型。');
+  const base = provBase(id, conf);
+  if (!base) throw new Error('请填写 API 地址。');
+  const ctx = { id, P, apiKey: conf.apiKey, model: conf.model, base, system, user, think, maxTokens, signal, onDelta, onReasoning };
+  const adapter = ADAPTERS[P.kind];
+  const candidates = adapter.bodies(ctx);
+  let lastErr = null;
+  for (let i = 0; i < candidates.length; i++) {
+    try { return await adapter.run(ctx, candidates[i]); }
+    catch (e) {
+      if (e.name === 'AbortError') throw e;
+      if (e.status === 400 && i < candidates.length - 1) { lastErr = e; continue; }   // 参数不被该模型支持：换下一个候选
+      throw e;
+    }
+  }
+  throw lastErr || new Error('请求失败');
+}
+/* 从接口拉取可用模型列表 */
+async function fetchModels(id, conf) {
+  const P = PROVIDERS[id], base = provBase(id, conf);
+  if (!base) throw new Error('请先填写 API 地址');
+  let url, headers;
+  if (P.kind === 'gemini') { url = base + '/models?pageSize=200'; headers = { 'x-goog-api-key': conf.apiKey }; }
+  else if (P.kind === 'anthropic') { url = base + '/models?limit=100'; headers = { 'x-api-key': conf.apiKey, 'anthropic-version': '2026-10-21', 'anthropic-dangerous-direct-browser-access': 'true' }; }
+  else { url = base + '/models'; headers = { 'Authorization': 'Bearer ' + conf.apiKey }; }
+  let res;
+  try { res = await fetch(url, { headers }); } catch { throw new Error('网络连接失败'); }
+  if (!res.ok) { let msg = ''; try { msg = (await res.json()).error?.message || ''; } catch { } throw new Error(apiErrorText(res.status, msg)); }
+  const j = await res.json();
+  let ids = P.kind === 'gemini'
+    ? (j.models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent')).map(m => String(m.name).replace(/^models\//, ''))
+    : (j.data || []).map(m => m.id).filter(Boolean);
+  ids = ids.filter(x => !/(embed|tts|transcri|audio|realtime|image|imagen|veo|lyria|moderation|whisper|dall-e|computer-use|robotics|aqa|banana|omni|-live|deep-research|antigravity|codex|instruct|sora|search-preview)/i.test(x));
+  if (id === 'openai') ids = ids.filter(x => /^(gpt|o\d|chatgpt)/.test(x));
+  return [...new Set(ids)].sort();
 }
 
 /* ---------- 提示词 ---------- */
@@ -733,12 +939,12 @@ async function translate() {
   const lang = effectiveLang(text);
   if (!lang) { setDetected(null); $('#detected').innerHTML = '无法识别语言，请手动选择'; return; }
   setDetected(lang, state.lang !== 'auto');
-  if (!settings.apiKey) { $('#banner').hidden = false; openSettings(); return; }
+  if (!hasKey()) { $('#banner').hidden = false; openSettings(); return; }
   const runId = ++state.runId;
   state.abort = new AbortController();
   const plan = PLANS[lang];
   state.plan = plan;
-  const item = { id: 'h' + now() + Math.random().toString(36).slice(2, 6), ts: now(), updated: now(), src: text, lang, outputs: {}, analyses: {}, fav: false };
+  const item = { id: 'h' + now() + Math.random().toString(36).slice(2, 6), ts: now(), updated: now(), src: text, lang, model: modelLabel(), outputs: {}, analyses: {}, fav: false };
   state.current = item;
   state.lastTranslated = text;
   renderResults(plan);
@@ -756,8 +962,8 @@ async function runBox(box, text, lang, runId, item) {
   let acc = '';
   try {
     await streamChat({
-      messages: [{ role: 'system', content: transSystem(box, lang) }, { role: 'user', content: text }],
-      thinking: settings.thinkTrans, effort: settings.thinkTrans ? 'low' : null, maxTokens: 4096,
+      system: transSystem(box, lang), user: text,
+      think: settings.thinkTrans, maxTokens: 4096,
       signal: state.abort.signal,
       onDelta: d => { if (runId !== state.runId) return; acc += d; status.textContent = ''; out.innerHTML = rubyHTML(acc, true); },
       onReasoning: () => { if (runId === state.runId && !acc) status.textContent = '思考中…'; }
@@ -824,13 +1030,11 @@ async function analyze(target, mode = 'normal', { toggle = false } = {}) {
   panel.dataset.loaded = ''; panel.dataset.mode = mode;
   mdEl.innerHTML = ''; mdEl.classList.add('streaming'); st.textContent = '分析中…';
   let acc = '';
-  const thinking = settings.thinkAna !== 'off';
   try {
     await streamChat({
-      messages: [{ role: 'system', content: anaSystem() }, {
-        role: 'user', content: anaUser({ text: stripRuby(text), lang, mode, isTranslation: !isSrc, srcText: item.src, srcLang: item.lang })
-      }],
-      thinking, effort: thinking ? settings.thinkAna : null, maxTokens: 8192, signal: ac.signal,
+      system: anaSystem(),
+      user: anaUser({ text: stripRuby(text), lang, mode, isTranslation: !isSrc, srcText: item.src, srcLang: item.lang }),
+      think: settings.thinkAna, maxTokens: 8192, signal: ac.signal,
       onDelta: d => { acc += d; st.textContent = ''; mdEl.innerHTML = md(acc); },
       onReasoning: () => { if (!acc) st.textContent = '思考中…'; }
     });
@@ -917,7 +1121,7 @@ function renderHistory() {
     return `<div class="hitem" data-id="${h.id}">
       <div class="hsrc">${esc(h.src)}</div>
       <div class="hout">${esc(stripRuby(first))}</div>
-      <div class="hmeta">${LANG_NAME[h.lang] || ''} · ${fmtTime(h.ts)}${h.analyses && Object.keys(h.analyses).length ? ' · 含分析' : ''}</div>
+      <div class="hmeta">${LANG_NAME[h.lang] || ''} · ${fmtTime(h.ts)}${h.model ? ' · ' + esc(h.model) : ''}${h.analyses && Object.keys(h.analyses).length ? ' · 含分析' : ''}</div>
       <div class="hbtns">
         <button class="sbtn ${h.fav ? 'on' : ''}" data-fav title="收藏">${h.fav ? ICONS.star : ICONS.starO}</button>
         <button class="sbtn" data-del title="删除">${ICONS.trash}</button>
@@ -1041,50 +1245,123 @@ function applyTheme() {
   document.querySelector('meta[name=theme-color]').setAttribute('content', t === 'dark' ? '#2d2e30' : '#1a73e8');
 }
 function applyFuri() { document.body.classList.toggle('furi', !!settings.furi); $('#btnFuri').classList.toggle('on', !!settings.furi); }
-function openSettings() {
-  $('#sApiKey').value = settings.apiKey; $('#sBaseUrl').value = settings.baseUrl; $('#sModel').value = settings.model;
-  $('#sThinkTrans').checked = settings.thinkTrans; $('#sThinkAna').value = settings.thinkAna; $('#sAuto').checked = settings.auto;
-  $('#sTheme').value = settings.theme; $('#sGistToken').value = settings.gistToken;
+
+/* 设置页里各接口的草稿，点「保存」才写回 */
+let draft = null, draftId = null;
+function populateProviderSelect() {
+  $('#sProvider').innerHTML = Object.entries(PROVIDERS).map(([id, p]) => `<option value="${id}">${p.name}${(draft?.[id]?.apiKey) ? ' ✓' : ''}</option>`).join('');
+}
+function modelOptions(id, c) {
+  const set = new Set([...PROVIDERS[id].presets, ...(c.models || [])]);
+  if (c.model) set.add(c.model);
+  return [...set];
+}
+function renderModelSelect(id, c) {
+  const sel = $('#sModel'), opts = modelOptions(id, c), custom = $('#sModelCustom');
+  sel.innerHTML = opts.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('') + '<option value="__custom__">手动输入模型名…</option>';
+  if (c.model && opts.includes(c.model)) { sel.value = c.model; custom.hidden = true; custom.value = ''; }
+  else { sel.value = '__custom__'; custom.hidden = false; custom.value = c.model || ''; }
+}
+function loadProviderFields(id) {
+  const P = PROVIDERS[id], c = draft[id];
+  draftId = id;
+  const key = $('#sApiKey'); key.value = c.apiKey || ''; key.type = 'password'; $('#btnEye').textContent = '显示';
+  const host = P.keyUrl ? P.keyUrl.replace(/^https?:\/\//, '').split('/')[0] : '';
+  $('#keyHelp').innerHTML = (P.keyUrl ? `在 <a href="${P.keyUrl}" target="_blank" rel="noopener">${host}</a> 创建。` : '') + esc(P.note) + ' Key 只保存在本设备浏览器里。';
+  renderModelSelect(id, c);
+  $('#sBaseUrl').value = c.baseUrl || ''; $('#sBaseUrl').placeholder = P.base || 'https://example.com/v1';
+  $('#baseHelp').textContent = id === 'custom' ? '必填。OpenAI 兼容接口的根地址，例如 https://openrouter.ai/api/v1' : '留空使用官方地址；用中转站时填中转地址。';
   $('#testStatus').textContent = ''; $('#testStatus').className = 'status-line';
+  $('#modelsStatus').textContent = c.models?.length ? `已拉取 ${c.models.length} 个模型。` : '';
+}
+function storeProviderFields() {
+  if (!draftId || !draft) return;
+  const c = draft[draftId];
+  c.apiKey = $('#sApiKey').value.trim();
+  const sel = $('#sModel').value;
+  c.model = sel === '__custom__' ? $('#sModelCustom').value.trim() : sel;
+  c.baseUrl = $('#sBaseUrl').value.trim();
+}
+function openSettings() {
+  draft = JSON.parse(JSON.stringify(settings.providers)); draftId = null;
+  populateProviderSelect(); $('#sProvider').value = settings.provider;
+  loadProviderFields(settings.provider);
+  $('#sThinkTrans').value = settings.thinkTrans; $('#sThinkAna').value = settings.thinkAna; $('#sAuto').checked = settings.auto;
+  $('#sTheme').value = settings.theme; $('#sGistToken').value = settings.gistToken;
   const ls = Number(localStorage.getItem(LS.lastSync) || 0);
   $('#syncStatus').textContent = settings.gistToken ? (ls ? '上次同步：' + fmtTime(ls) : '尚未同步') : '';
   $('#syncStatus').className = 'status-line';
   $('#settings').hidden = false;
-  if (!settings.apiKey) setTimeout(() => $('#sApiKey').focus(), 50);
+  if (!draft[settings.provider].apiKey) setTimeout(() => $('#sApiKey').focus(), 50);
 }
 function closeSettings() { $('#settings').hidden = true; }
 function saveSettings() {
+  storeProviderFields();
   const prevToken = settings.gistToken;
-  settings.apiKey = $('#sApiKey').value.trim();
-  settings.baseUrl = ($('#sBaseUrl').value.trim() || DEFAULT_BASE);
-  settings.model = $('#sModel').value;
-  settings.thinkTrans = $('#sThinkTrans').checked;
-  settings.thinkAna = $('#sThinkAna').value;
+  settings.providers = draft; settings.provider = $('#sProvider').value;
+  settings.thinkTrans = $('#sThinkTrans').value; settings.thinkAna = $('#sThinkAna').value;
   settings.auto = $('#sAuto').checked;
   settings.theme = $('#sTheme').value;
   settings.gistToken = $('#sGistToken').value.trim();
   if (settings.gistToken !== prevToken) settings.gistId = '';
   saveJSON(LS.settings, settings);
-  applyTheme();
-  $('#banner').hidden = !!settings.apiKey;
+  applyTheme(); updatePill();
+  $('#banner').hidden = hasKey();
   closeSettings();
-  toast('设置已保存');
+  toast('设置已保存 · 当前：' + modelLabel());
   if (settings.gistToken) syncNow(false);
 }
 async function testConnection() {
-  const st = $('#testStatus');
-  const key = $('#sApiKey').value.trim();
-  const base = ($('#sBaseUrl').value.trim() || DEFAULT_BASE).replace(/\/+$/, '');
-  if (!key) { st.textContent = '请先填写 API Key'; st.className = 'status-line err'; return; }
+  storeProviderFields();
+  const id = draftId, c = draft[id], st = $('#testStatus');
+  const fail = m => { st.textContent = m; st.className = 'status-line err'; };
+  if (!c.apiKey) return fail('请先填写 API Key');
+  if (!c.model) return fail('请选择或输入模型名');
+  if (!provBase(id, c)) return fail('请填写 API 地址');
   st.textContent = '连接中…'; st.className = 'status-line';
   try {
-    const body = { model: $('#sModel').value, messages: [{ role: 'user', content: '回复「OK」两个字母即可。' }], max_tokens: 8, stream: false };
-    if (/deepseek/i.test(base)) body.thinking = { type: 'disabled' };
-    const res = await fetch(base + '/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key }, body: JSON.stringify(body) });
-    if (!res.ok) { let msg = ''; try { msg = (await res.json()).error?.message || ''; } catch { } throw new Error(apiErrorText(res.status, msg)); }
-    st.textContent = '连接成功'; st.className = 'status-line ok';
-  } catch (e) { st.textContent = e.message || '连接失败'; st.className = 'status-line err'; }
+    let out = '';
+    await streamChat({ system: '你是连接测试助手。', user: '请只回复两个字母：OK', think: 'off', maxTokens: 64, providerId: id, conf: c, onDelta: d => { out += d; } });
+    st.textContent = '连接成功' + (out.trim() ? '：' + out.trim().slice(0, 30) : ''); st.className = 'status-line ok';
+  } catch (e) { fail(e.message || '连接失败'); }
 }
+async function refreshModels() {
+  storeProviderFields();
+  const id = draftId, c = draft[id], st = $('#modelsStatus');
+  if (!c.apiKey) { st.textContent = '请先填写 API Key。'; return; }
+  st.textContent = '拉取中…';
+  try {
+    const ids = await fetchModels(id, c);
+    c.models = ids; renderModelSelect(id, c);
+    st.textContent = ids.length ? `已拉取 ${ids.length} 个模型。` : '接口没有返回可用模型，请手动输入。';
+  } catch (e) { st.textContent = '拉取失败：' + e.message; }
+}
+
+/* 顶栏模型切换 */
+function updatePill() {
+  const id = settings.provider, c = settings.providers[id];
+  $('#pillName').textContent = PROVIDERS[id].name;
+  $('#pillModel').textContent = c.model || '未选模型';
+  $('#modelPill').classList.toggle('warn', !hasKey());
+}
+function toggleModelMenu(force) {
+  const m = $('#modelMenu');
+  const show = force !== undefined ? force : m.hidden;
+  if (!show) { m.hidden = true; return; }
+  const ids = Object.keys(PROVIDERS).filter(id => hasKey(id));
+  m.innerHTML = (ids.length
+    ? ids.map(id => `<button class="mitem ${id === settings.provider ? 'on' : ''}" data-id="${id}"><span>${PROVIDERS[id].name}</span><small>${esc(settings.providers[id].model)}</small></button>`).join('')
+    : '<div class="mempty">还没有配置任何接口</div>')
+    + '<div class="msep"></div><button class="mitem" data-id="__settings__"><span>接口与模型设置…</span></button>';
+  m.hidden = false;
+}
+function switchProvider(id) {
+  if (!PROVIDERS[id]) return;
+  settings.provider = id; saveJSON(LS.settings, settings);
+  updatePill(); $('#banner').hidden = hasKey();
+  toast('已切换到 ' + modelLabel(), 1500);
+}
+
 function exportBackup() {
   const payload = { version: 1, exportedAt: now(), history, deleted };
   const blob = new Blob([JSON.stringify(payload, null, 1)], { type: 'application/json' });
@@ -1185,6 +1462,21 @@ function bind() {
   $('#btnEye').onclick = () => { const i = $('#sApiKey'); i.type = i.type === 'password' ? 'text' : 'password'; $('#btnEye').textContent = i.type === 'password' ? '显示' : '隐藏'; };
   $('#btnEye2').onclick = () => { const i = $('#sGistToken'); i.type = i.type === 'password' ? 'text' : 'password'; $('#btnEye2').textContent = i.type === 'password' ? '显示' : '隐藏'; };
   $('#btnTest').onclick = testConnection;
+  $('#btnFetchModels').onclick = refreshModels;
+  $('#sProvider').onchange = () => { storeProviderFields(); loadProviderFields($('#sProvider').value); };
+  $('#sModel').onchange = () => { const custom = $('#sModelCustom'); custom.hidden = $('#sModel').value !== '__custom__'; if (!custom.hidden) custom.focus(); };
+  $('#modelPill').onclick = e => { e.stopPropagation(); toggleModelMenu(); };
+  $('#modelMenu').addEventListener('click', e => {
+    e.stopPropagation();
+    const b = e.target.closest('.mitem'); if (!b) return;
+    toggleModelMenu(false);
+    if (b.dataset.id === '__settings__') { openSettings(); return; }
+    if (b.dataset.id === settings.provider) return;
+    switchProvider(b.dataset.id);
+    const t = srcEl.value.trim();
+    if (t) { clearTimeout(typingTimer); translate(); }
+  });
+  document.addEventListener('click', () => toggleModelMenu(false));
   $('#btnSync').onclick = () => { settings.gistToken = $('#sGistToken').value.trim(); if (settings.gistToken !== (loadJSON(LS.settings, {}).gistToken || '')) settings.gistId = ''; saveJSON(LS.settings, settings); syncNow(true); };
   $('#btnExport').onclick = exportBackup;
   $('#btnImport').onclick = () => $('#importFile').click();
@@ -1199,7 +1491,7 @@ function bind() {
 function ensureCurrent(fn) {
   const text = srcEl.value.trim();
   if (!text) { toast('请先输入内容'); return; }
-  if (!settings.apiKey) { openSettings(); return; }
+  if (!hasKey()) { openSettings(); return; }
   if (!state.current || state.current.src !== text) {
     // 还没翻译过当前文本：先建立记录再分析（同时触发翻译）
     clearTimeout(typingTimer);
@@ -1214,7 +1506,7 @@ function ensureCurrent(fn) {
 function init() {
   bind();
   applyTheme(); applyFuri();
-  $('#banner').hidden = !!settings.apiKey;
+  $('#banner').hidden = hasKey(); updatePill();
   $('#verLine').textContent = '译学 v' + APP_VERSION;
   autosize(); updateCount();
   // URL 参数：?q=文本（方便从其他地方跳转）
