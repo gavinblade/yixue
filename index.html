@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>译学 · AI 翻译与语法学习</title>
+<meta name="description" content="中日英三语自然翻译与语法分析学习工具">
+<meta name="theme-color" content="#1a73e8">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="译学">
+<style>
+:root{
+  --bg:#f8f9fa; --card:#ffffff; --text:#202124; --muted:#5f6368; --line:#dadce0;
+  --accent:#1a73e8; --accent-text:#ffffff; --accent-weak:#e8f0fe; --danger:#d93025;
+  --hover:rgba(60,64,67,.08); --shadow:0 1px 2px rgba(60,64,67,.3),0 1px 3px 1px rgba(60,64,67,.15);
+  --ruby:#5f6368; --code:#f1f3f4;
+}
+[data-theme="dark"]{
+  --bg:#202124; --card:#2d2e30; --text:#e8eaed; --muted:#9aa0a6; --line:#3c4043;
+  --accent:#8ab4f8; --accent-text:#202124; --accent-weak:#394457; --danger:#f28b82;
+  --hover:rgba(232,234,237,.08); --shadow:0 1px 2px rgba(0,0,0,.4),0 1px 3px 1px rgba(0,0,0,.25);
+  --ruby:#9aa0a6; --code:#3c4043;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans CJK SC","Noto Sans JP","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased; min-height:100vh;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+textarea,input,select{font:inherit;color:inherit}
+[hidden]{display:none !important}
+
+/* top bar */
+.topbar{
+  position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:4px;
+  padding:8px 12px;padding-top:calc(8px + env(safe-area-inset-top));
+  background:var(--card);border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:600;letter-spacing:.5px;padding:0 6px}
+.brand .logo{width:28px;height:28px;border-radius:7px;background:var(--accent);color:var(--accent-text);display:grid;place-items:center;font-size:15px;font-weight:700}
+.spacer{flex:1}
+.iconbtn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--muted);position:relative}
+.iconbtn:hover{background:var(--hover)}
+.iconbtn.on{color:var(--accent);background:var(--accent-weak)}
+.iconbtn svg{width:22px;height:22px;fill:currentColor}
+.iconbtn .kana{font-size:18px;font-weight:700;line-height:1}
+
+/* layout */
+.layout{max-width:1120px;margin:0 auto;padding:12px;display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:900px){
+  .layout{grid-template-columns:1fr 1fr;align-items:start;padding:20px}
+  .input-card{position:sticky;top:76px}
+}
+.card{background:var(--card);border-radius:12px;box-shadow:var(--shadow);overflow:hidden}
+.card-head{display:flex;align-items:center;gap:8px;padding:8px 8px 0 12px;flex-wrap:wrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.seg button{padding:5px 12px;font-size:13px;color:var(--muted)}
+.seg button.on{background:var(--accent-weak);color:var(--accent);font-weight:600}
+.detected{font-size:12px;color:var(--muted);margin-left:auto;padding-right:6px}
+.detected b{color:var(--accent);font-weight:600}
+textarea#src{
+  width:100%;border:0;outline:0;resize:none;background:transparent;
+  padding:14px 14px 6px;font-size:22px;line-height:1.55;min-height:132px;max-height:50vh;
+}
+@media(max-width:600px){textarea#src{font-size:20px;min-height:112px}}
+textarea#src::placeholder{color:var(--muted);opacity:.8}
+.card-foot{display:flex;align-items:center;gap:6px;padding:4px 8px 8px 14px;flex-wrap:wrap}
+.count{font-size:12px;color:var(--muted);margin-right:auto}
+.tbtn{padding:7px 12px;border-radius:999px;font-size:13px;color:var(--accent);font-weight:500;display:inline-flex;align-items:center;gap:5px}
+.tbtn:hover{background:var(--accent-weak)}
+.tbtn svg{width:16px;height:16px;fill:currentColor}
+.tbtn:disabled{opacity:.4;cursor:default}
+@media(max-width:420px){.tbtn{padding:8px 9px}.tbtn svg{width:19px;height:19px}.tbtn .lbl{display:none}}
+.pbtn{padding:8px 18px;border-radius:999px;background:var(--accent);color:var(--accent-text);font-weight:600;font-size:14px}
+.pbtn:hover{filter:brightness(1.05)}
+.pbtn:disabled{opacity:.5;cursor:default}
+
+/* result cards */
+.results{display:flex;flex-direction:column;gap:12px}
+.rcard{position:relative}
+.rcard .rhead{display:flex;align-items:center;gap:8px;padding:10px 14px 0}
+.rcard .label{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.4px;text-transform:uppercase}
+.rcard .status{font-size:12px;color:var(--muted);margin-left:auto}
+.rcard .body{padding:8px 14px 6px;cursor:pointer}
+.rcard .body:hover{background:var(--hover)}
+.out{font-size:21px;line-height:1.75;min-height:1.75em;word-break:break-word;white-space:pre-wrap}
+@media(max-width:600px){.out{font-size:19px}}
+.out.streaming::after{content:"▍";color:var(--accent);animation:blink 1s steps(1) infinite;margin-left:1px}
+@keyframes blink{50%{opacity:0}}
+.out .err{color:var(--danger);font-size:15px;line-height:1.5}
+.out .err a{color:var(--accent);cursor:pointer;margin-left:6px;text-decoration:underline}
+.rfoot{display:flex;align-items:center;gap:2px;padding:0 6px 6px 8px}
+.rfoot .hint{font-size:12px;color:var(--muted);margin-right:auto;padding-left:6px;opacity:.9}
+.sbtn{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
+.sbtn:hover{background:var(--hover);color:var(--accent)}
+.sbtn svg{width:19px;height:19px;fill:currentColor}
+.sbtn.on{color:var(--accent)}
+.rcard.placeholder .out{color:var(--muted);opacity:.6;font-size:16px}
+
+/* ruby */
+ruby{ruby-position:over}
+rt{font-size:.52em;color:var(--ruby);letter-spacing:0;font-weight:400;line-height:1}
+body:not(.furi) .out rt{display:none}
+body:not(.furi) .srcview rt{display:none}
+
+/* analysis */
+.analysis{border-top:1px solid var(--line);padding:10px 14px 14px;font-size:15px;line-height:1.7;color:var(--text)}
+.analysis .ahead{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.analysis .ahead .atitle{font-size:12px;font-weight:600;color:var(--accent);letter-spacing:.4px}
+.analysis .ahead .astatus{font-size:12px;color:var(--muted)}
+.analysis .ahead .aclose{margin-left:auto;font-size:12px;color:var(--muted);padding:4px 8px;border-radius:999px}
+.analysis .ahead .aclose:hover{background:var(--hover)}
+.analysis .md{font-size:15px}
+.md h1,.md h2,.md h3,.md h4{margin:14px 0 6px;line-height:1.35}
+.md h2{font-size:15px;color:var(--accent);padding-bottom:4px;border-bottom:1px solid var(--line)}
+.md h3{font-size:15px}
+.md p{margin:6px 0}
+.md ul,.md ol{margin:4px 0 8px;padding-left:22px}
+.md li{margin:3px 0}
+.md li ul,.md li ol{margin:2px 0}
+.md code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.92em}
+.md pre{background:var(--code);padding:10px;border-radius:8px;overflow:auto}
+.md blockquote{margin:6px 0;padding:4px 12px;border-left:3px solid var(--line);color:var(--muted)}
+.md table{border-collapse:collapse;margin:8px 0;width:100%;font-size:14px;display:block;overflow-x:auto}
+.md th,.md td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.md th{background:var(--accent-weak);font-weight:600}
+.md strong{font-weight:600}
+.md rt{font-size:.55em}
+.md.streaming::after{content:"▍";color:var(--accent);animation:blink 1s steps(1) infinite}
+.md .err{color:var(--danger)}
+
+/* banner */
+.banner{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:var(--accent-weak);color:var(--text);font-size:14px;grid-column:1/-1}
+.banner b{color:var(--accent)}
+.banner .pbtn{margin-left:auto;padding:6px 14px;font-size:13px}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:30;opacity:0;pointer-events:none;transition:opacity .2s}
+.scrim.show{opacity:1;pointer-events:auto}
+.drawer{
+  position:fixed;z-index:31;background:var(--card);box-shadow:var(--shadow);display:flex;flex-direction:column;
+  transition:transform .25s ease;
+}
+@media(min-width:700px){
+  .drawer{top:0;right:0;bottom:0;width:420px;max-width:92vw;transform:translateX(105%)}
+  .drawer.show{transform:none}
+}
+@media(max-width:699px){
+  .drawer{left:0;right:0;bottom:0;height:82vh;border-radius:16px 16px 0 0;transform:translateY(105%)}
+  .drawer.show{transform:none}
+}
+.dhead{display:flex;align-items:center;gap:6px;padding:12px 12px 6px 16px;border-bottom:1px solid var(--line)}
+.dhead .dtitle{font-size:17px;font-weight:600}
+.tabs{display:inline-flex;gap:2px;margin-left:8px}
+.tabs button{padding:6px 12px;border-radius:999px;font-size:13px;color:var(--muted)}
+.tabs button.on{background:var(--accent-weak);color:var(--accent);font-weight:600}
+.dsearch{padding:8px 12px;border-bottom:1px solid var(--line)}
+.dsearch input{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:transparent;outline:0}
+.dsearch input:focus{border-color:var(--accent)}
+.dlist{flex:1;overflow:auto;padding:6px 0 calc(10px + env(safe-area-inset-bottom))}
+.hitem{display:grid;grid-template-columns:1fr auto;gap:2px 6px;padding:10px 10px 10px 16px;cursor:pointer;border-bottom:1px solid var(--line)}
+.hitem:hover{background:var(--hover)}
+.hitem .hsrc{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hitem .hout{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hitem .hmeta{font-size:11px;color:var(--muted);opacity:.8}
+.hitem .hsrc,.hitem .hout,.hitem .hmeta{grid-column:1;text-align:left}
+.hitem .hbtns{grid-column:2;grid-row:1/4;display:flex;align-items:center;gap:0}
+.hitem .sbtn{width:32px;height:32px}
+.hitem .sbtn svg{width:17px;height:17px}
+.empty{padding:30px 16px;text-align:center;color:var(--muted);font-size:14px}
+
+/* modal */
+.modal{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:12px;background:rgba(0,0,0,.4)}
+.mbox{background:var(--card);border-radius:14px;width:min(560px,100%);max-height:92vh;overflow:auto;box-shadow:var(--shadow)}
+.mhead{display:flex;align-items:center;padding:14px 16px 6px;font-size:18px;font-weight:600}
+.mbody{padding:4px 16px 14px;display:flex;flex-direction:column;gap:12px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.3px}
+.field .row{display:flex;gap:6px;align-items:center}
+.field input[type=text],.field input[type=password],.field select{
+  width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:transparent;outline:0
+}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.field .help{font-size:12px;color:var(--muted);line-height:1.5}
+.field .help a{color:var(--accent)}
+.check{display:flex;align-items:center;gap:10px;font-size:14px;padding:4px 0}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+.check .sub{font-size:12px;color:var(--muted)}
+.mfoot{display:flex;gap:8px;padding:8px 16px 16px;align-items:center;flex-wrap:wrap}
+.mfoot .spacer{flex:1}
+.ghost{padding:8px 14px;border-radius:999px;color:var(--accent);font-weight:500;border:1px solid var(--line)}
+.ghost:hover{background:var(--accent-weak)}
+.status-line{font-size:12px;color:var(--muted)}
+.status-line.err{color:var(--danger)}
+.status-line.ok{color:#188038}
+[data-theme="dark"] .status-line.ok{color:#81c995}
+hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
+.sect{font-size:13px;font-weight:600;color:var(--accent);margin-top:4px}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
+  background:#323232;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;z-index:50;opacity:0;transition:all .2s;pointer-events:none;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%)}
+
+.srcview{font-size:17px;line-height:1.8;margin-bottom:6px}
+.kbd{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="logo">译</span><span>译学</span></div>
+  <div class="spacer"></div>
+  <button class="iconbtn" id="btnFuri" title="显示 / 隐藏振假名"><span class="kana">あ</span></button>
+  <button class="iconbtn" id="btnHistory" title="历史与收藏"></button>
+  <button class="iconbtn" id="btnTheme" title="切换主题"></button>
+  <button class="iconbtn" id="btnSettings" title="设置"></button>
+</header>
+
+<main class="layout">
+  <div class="banner" id="banner" hidden>
+    <span>还没有填写 <b>DeepSeek API Key</b>，翻译前请先在设置里填入。Key 只保存在本设备浏览器里。</span>
+    <button class="pbtn" id="bannerBtn">去设置</button>
+  </div>
+
+  <section class="card input-card" id="inputCard">
+    <div class="card-head">
+      <div class="seg" id="langSeg">
+        <button data-lang="auto" class="on">自动</button><button data-lang="zh">中</button><button data-lang="ja">日</button><button data-lang="en">英</button>
+      </div>
+      <div class="detected" id="detected">输入后自动识别语言</div>
+    </div>
+    <textarea id="src" placeholder="输入中文、日语或英语…" rows="3" autofocus spellcheck="false"></textarea>
+    <div class="card-foot">
+      <span class="count" id="count"></span>
+      <button class="tbtn" id="btnClear" title="清空"></button>
+      <button class="tbtn" id="btnSpeakSrc" title="朗读原文"></button>
+      <button class="tbtn" id="btnAnalyzeSrc" title="分析原文的词汇与语法"></button>
+      <button class="tbtn" id="btnDeep" title="对这个表达做详细的语法深究"></button>
+      <button class="pbtn" id="btnTranslate">翻译</button>
+    </div>
+    <div class="analysis" id="srcAnalysis" hidden>
+      <div class="ahead"><span class="atitle">原文分析</span><span class="astatus"></span><button class="aclose">收起</button></div>
+      <div class="md"></div>
+    </div>
+  </section>
+
+  <section class="results" id="results"></section>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="历史与收藏">
+  <div class="dhead">
+    <span class="dtitle">记录</span>
+    <div class="tabs"><button data-tab="history" class="on">历史</button><button data-tab="fav">收藏</button></div>
+    <span class="spacer"></span>
+    <button class="iconbtn" id="btnCloseDrawer" title="关闭"></button>
+  </div>
+  <div class="dsearch"><input id="hsearch" type="text" placeholder="搜索记录…"></div>
+  <div class="dlist" id="hlist"></div>
+</aside>
+
+<div class="modal" id="settings" hidden>
+  <div class="mbox">
+    <div class="mhead">设置</div>
+    <div class="mbody">
+      <div class="sect">模型接口</div>
+      <div class="field">
+        <label for="sApiKey">DeepSeek API Key</label>
+        <div class="row">
+          <input id="sApiKey" type="password" placeholder="sk-…" autocomplete="off">
+          <button class="ghost" id="btnEye" type="button">显示</button>
+        </div>
+        <div class="help">在 <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">platform.deepseek.com</a> 创建。Key 只存在当前设备的浏览器里，不会上传到任何地方，每台设备填一次。</div>
+      </div>
+      <div class="field">
+        <label for="sModel">模型</label>
+        <select id="sModel">
+          <option value="deepseek-flash">deepseek-flash（默认，快而便宜）</option>
+          <option value="deepseek-v4-pro">deepseek-v4-pro（更强，稍慢稍贵）</option>
+        </select>
+      </div>
+      <label class="check"><input type="checkbox" id="sThinkTrans"><span>翻译时开启思考模式<br><span class="sub">更慢，大多数日常句子不需要。关闭时翻译几秒内出结果。</span></span></label>
+      <div class="field">
+        <label for="sThinkAna">语法分析时的思考模式</label>
+        <select id="sThinkAna">
+          <option value="off">关闭（最快）</option>
+          <option value="low">低（稍慢，分析更稳）</option>
+          <option value="high">高（明显变慢）</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="sBaseUrl">API 地址（高级）</label>
+        <input id="sBaseUrl" type="text" placeholder="https://api.deepseek.com">
+        <div class="help">兼容 OpenAI 格式的接口都可以填在这里。一般不用改。</div>
+      </div>
+      <div class="row" style="display:flex;gap:8px;align-items:center">
+        <button class="ghost" id="btnTest" type="button">测试连接</button>
+        <span class="status-line" id="testStatus"></span>
+      </div>
+
+      <hr class="sep">
+      <div class="sect">行为与外观</div>
+      <label class="check"><input type="checkbox" id="sAuto"><span>停止输入后自动翻译<br><span class="sub">关闭后需要点「翻译」或按 <span class="kbd">⌘/Ctrl + Enter</span></span></span></label>
+      <div class="field">
+        <label for="sTheme">主题</label>
+        <select id="sTheme">
+          <option value="auto">跟随系统</option>
+          <option value="light">浅色</option>
+          <option value="dark">深色</option>
+        </select>
+      </div>
+
+      <hr class="sep">
+      <div class="sect">多设备同步（历史与收藏）</div>
+      <div class="field">
+        <label for="sGistToken">GitHub Token（仅需 gist 权限）</label>
+        <div class="row">
+          <input id="sGistToken" type="password" placeholder="ghp_…" autocomplete="off">
+          <button class="ghost" id="btnEye2" type="button">显示</button>
+        </div>
+        <div class="help">记录会保存到你 GitHub 账号下的一个私密 Gist，每台设备填同一个 Token 即可同步。在 <a href="https://github.com/settings/tokens/new?scopes=gist&description=yixue-sync" target="_blank" rel="noopener">github.com/settings/tokens</a> 生成，只勾选 <b>gist</b>。</div>
+      </div>
+      <div class="row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="ghost" id="btnSync" type="button">立即同步</button>
+        <button class="ghost" id="btnExport" type="button">导出备份</button>
+        <button class="ghost" id="btnImport" type="button">导入备份</button>
+        <input type="file" id="importFile" accept="application/json" hidden>
+      </div>
+      <span class="status-line" id="syncStatus"></span>
+    </div>
+    <div class="mfoot">
+      <span class="status-line" id="verLine">译学 v1.0</span>
+      <span class="spacer"></span>
+      <button class="ghost" id="btnCloseSettings" type="button">取消</button>
+      <button class="pbtn" id="btnSaveSettings" type="button">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ============================================================
+   译学 · 单文件应用
+   ============================================================ */
+const APP_VERSION = '1.0.0';
+const DEFAULT_BASE = 'https://api.deepseek.com';
+const LS = { settings: 'yx.settings', history: 'yx.history', deleted: 'yx.deleted', lastSync: 'yx.lastSync' };
+const DEFAULTS = {
+  apiKey: '', baseUrl: DEFAULT_BASE, model: 'deepseek-flash',
+  thinkTrans: false, thinkAna: 'off', auto: true, theme: 'auto', furi: false,
+  gistToken: '', gistId: ''
+};
+const LANG_NAME = { zh: '中文', ja: '日语', en: '英语' };
+const SPEECH_LANG = { zh: 'zh-CN', ja: 'ja-JP', en: 'en-US' };
+
+/* 输出框方案 */
+const PLANS = {
+  zh: [
+    { key: 'ja_casual', label: '日语 · 口语', lang: 'ja' },
+    { key: 'ja_polite', label: '日语 · 敬语', lang: 'ja' },
+    { key: 'en_casual', label: '英语 · 口语', lang: 'en' }
+  ],
+  ja: [
+    { key: 'zh', label: '中文', lang: 'zh' },
+    { key: 'en_casual', label: '英语 · 口语', lang: 'en' }
+  ],
+  en: [
+    { key: 'zh', label: '中文', lang: 'zh' },
+    { key: 'ja_casual', label: '日语 · 口语', lang: 'ja' }
+  ]
+};
+
+/* 常见的非简体字符（日本新字体、繁体、日语专用符号）。
+   纯汉字输入里出现任何一个，就判定为日语。 */
+const NON_SIMPLIFIED = new Set((
+  '々〜' +
+  '気広売円図変済県険験駅帰黒発択訳読続歩歳歴囲壊懐拡楽芸経絵継検鉱剤斉斎殻覚挙拠郷響暁謹駆鶏渓恵掲蛍権顕厳砕桜冊桟賛糸歯児釈収従渋獣縦粛処奨焼証乗剰壌嬢浄縄譲醸粋酔髄瀬摂節専戦銭繊捜挿巣痩総騒増蔵臓対帯沢単嘆団弾遅鋳庁懲聴勅鎮逓鉄転伝塗闘徳難悩脳覇廃拝髪抜晩賓頻払仏併並塀餅辺舗穂豊毎満麺黙揺様謡頼欄竜両猟緑隣塁涙戻霊齢暦練錬労録' +
+  '働込畑峠辻枠栃匂雫凪凧榊躾姫掛栄梱楓榎樋歎湊漁漬瀧況渇疎瘍療癒皐盃磯窓竈竪筈篭籠絆綴緯縞繋纏罠聡脅脇脹膚臍蕩薫藁蘇虜蝋衝裏補覗訊詫諦謄貼賭趙躍軸轄遷邊釘鈍鈴鉢銘鋭鋸錆錠錨鍋鍛鎌鏈鑑閑隷鞄韓頁頑顎颪飴餌饅駒駿鬱鮎鯉鯖鰐鰻鳩鴨鵜鶯鷹麹' +
+  '仮価偽側億傷僕儀創劇勧勢務動勝効協営喫園圏國圧堅塩壱奮姉実寛尋導層帳幣幹庫強徴悪憶應懸戯戸捨掃揮損撃敵數斷昇暫曇書會業極構樂標樹橋機檢歓歡殺氣渉減準溝滝漢濃無煙爲為犠獲獄現環産畳盤碁確礎禮穀積穏窮築簡粧糧紀約紅納純紙級紹終組結絞給統絶綺綱網緊緒線締編緩縁縛縫績繰罰義聞職臨與興舊艶荘華萬葉蘭處號衆術衛製複襲見規視覧親観觀覺計訂討訓託記訪設許訴診註詞詠試詩話該詳誇誌認誕語誠誤説說誰課調談請論諸謎講謝識譜議護讀變豐負財貢貧貨販貫責貯貴買貸費貿賀資賃賊賞賢質購贈車軌軍軽較輝輩輪輸農達違遠適選遺郵醫鉛銀銃銅鋼鍵鎖鏡鐘長門閉開間関閣閥閲闇關陣陽隊階際隠雑離雲電霧頂項順預領頭題額顔願類風飛飯飲飼飽飾養餓館馬駄駐騎驚體魚鮮鳥鳴鶴麗龍' +
+  '這個們麼嗎裡後來時東還沒點聽寫讓進過對問題業藥機經絲練續織總設議譯證歲曆幾區圖陸隨靈顯類飯驕鬧鹽麥黃齊齒龜習恥羨賑頃氷涼週湯値決員遊決'
+).split(''));
+
+/* ---------- 工具 ---------- */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const now = () => Date.now();
+function toast(msg, ms = 2200) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), ms);
+}
+function loadJSON(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } }
+function saveJSON(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+function fmtTime(ts) {
+  const d = new Date(ts), n = new Date();
+  const same = d.toDateString() === n.toDateString();
+  const hm = d.toTimeString().slice(0, 5);
+  return same ? hm : `${d.getMonth() + 1}/${d.getDate()} ${hm}`;
+}
+
+const ICONS = {
+  history: '<svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 0 0-9 9H1l3.9 3.9.1.1L9 12H6a7 7 0 1 1 7 7 6.9 6.9 0 0 1-4.9-2.1l-1.4 1.4A9 9 0 1 0 13 3zm-1 5v5l4.3 2.5.7-1.2-3.5-2.1V8H12z"/></svg>',
+  theme: '<svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm0 16V5a7 7 0 0 1 0 14z"/></svg>',
+  settings: '<svg viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 .1-1 7.6 7.6 0 0 0-.1-1l2.1-1.7a.5.5 0 0 0 .1-.6l-2-3.5a.5.5 0 0 0-.6-.2l-2.5 1a7.3 7.3 0 0 0-1.7-1l-.4-2.6a.5.5 0 0 0-.5-.4h-4a.5.5 0 0 0-.5.4l-.4 2.6a7.3 7.3 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.6.2l-2 3.5a.5.5 0 0 0 .1.6L4.6 11a7.6 7.6 0 0 0-.1 1 7.6 7.6 0 0 0 .1 1l-2.1 1.7a.5.5 0 0 0-.1.6l2 3.5c.1.2.4.3.6.2l2.5-1a7.3 7.3 0 0 0 1.7 1l.4 2.6c0 .2.2.4.5.4h4c.2 0 .5-.2.5-.4l.4-2.6a7.3 7.3 0 0 0 1.7-1l2.5 1c.2.1.5 0 .6-.2l2-3.5a.5.5 0 0 0-.1-.6L19.4 13zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>',
+  close: '<svg viewBox="0 0 24 24"><path d="M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4l5.6 5.6L5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6z"/></svg>',
+  copy: '<svg viewBox="0 0 24 24"><path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z"/></svg>',
+  speak: '<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6z"/></svg>',
+  analyze: '<svg viewBox="0 0 24 24"><path d="M4 4h16v2H4zm0 5h10v2H4zm0 5h16v2H4zm0 5h10v2H4z"/></svg>',
+  deep: '<svg viewBox="0 0 24 24"><path d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 9.5 16a6.5 6.5 0 0 0 4.2-1.6l.3.3v.8l5 5 1.5-1.5-5-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9zm2.5-4h-2v2H9v-2H7V9h2V7h1v2h2v1z"/></svg>',
+  clear: '<svg viewBox="0 0 24 24"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>',
+  star: '<svg viewBox="0 0 24 24"><path d="m12 17.3 6.2 3.7-1.6-7 5.4-4.7-7.2-.6L12 2 9.2 8.7 2 9.3l5.4 4.7-1.6 7z"/></svg>',
+  starO: '<svg viewBox="0 0 24 24"><path d="M22 9.2l-7.2-.6L12 2 9.2 8.6 2 9.2l5.5 4.7L5.8 21 12 17.3l6.2 3.7-1.6-7.1L22 9.2zM12 15.4l-3.8 2.3 1-4.3-3.3-2.9 4.4-.4L12 6.1l1.7 4.1 4.4.4-3.3 2.9 1 4.3-3.8-2.4z"/></svg>',
+  trash: '<svg viewBox="0 0 24 24"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>',
+};
+
+/* ---------- 状态 ---------- */
+let settings = Object.assign({}, DEFAULTS, loadJSON(LS.settings, {}));
+let history = loadJSON(LS.history, []);
+let deleted = loadJSON(LS.deleted, []);
+const state = {
+  lang: 'auto', detected: null, runId: 0, abort: null,
+  current: null, lastTranslated: '', plan: [], anaAborts: {}, drawerTab: 'history', dirty: false
+};
+
+/* ---------- 语言检测 ---------- */
+function detectLang(text) {
+  if (!text) return null;
+  if (/[぀-ヿㇰ-ㇿ]/.test(text)) return 'ja';            // 假名
+  const hasCJK = /[一-鿿㐀-䶿豈-﫿]/.test(text);
+  if (!hasCJK) {
+    if (/[A-Za-z]/.test(text)) return 'en';
+    return null;
+  }
+  for (const ch of text) if (NON_SIMPLIFIED.has(ch)) return 'ja';
+  return 'zh';
+}
+function effectiveLang(text) { return state.lang === 'auto' ? detectLang(text) : state.lang; }
+function isShortPhrase(text, lang) {
+  const core = text.replace(/[\s。．.!！?？、,，;；:：「」『』"'“”‘’()（）\-—…~〜]/g, '');
+  const endsSentence = /[。.!！?？]\s*$/.test(text);
+  if (lang === 'ja') return core.length <= 12 && !endsSentence;
+  if (lang === 'en') return core.split(/\s+/).length <= 1 && text.trim().split(/\s+/).length <= 4 && !endsSentence;
+  return false;
+}
+
+/* ---------- 文本渲染（振假名） ---------- */
+function rubyHTML(text, streaming) {
+  let s = esc(text);
+  if (streaming) {
+    // 流式输出时，末尾未闭合的 {漢字|よみ 只显示汉字部分
+    s = s.replace(/\{([^{}|]*)(\|[^{}]*)?$/, '$1');
+  }
+  s = s.replace(/\{([^{}|]+)\|([^{}]+)\}/g, '<ruby>$1<rt>$2</rt></ruby>');
+  return s;
+}
+function stripRuby(text) { return String(text).replace(/\{([^{}|]+)\|([^{}]+)\}/g, '$1'); }
+
+/* ---------- 极简 Markdown ---------- */
+function inlineMD(s) {
+  s = esc(s);
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+  s = s.replace(/\{([^{}|]+)\|([^{}]+)\}/g, '<ruby>$1<rt>$2</rt></ruby>');
+  return s;
+}
+function splitCells(line) {
+  // 按 | 分割表格单元格，但忽略 {漢字|よみ} 里的竖线
+  let s = line.trim(); if (s.startsWith('|')) s = s.slice(1); if (s.endsWith('|')) s = s.slice(0, -1);
+  const cells = []; let cur = '', depth = 0;
+  for (const ch of s) {
+    if (ch === '{') depth++;
+    else if (ch === '}') depth = Math.max(0, depth - 1);
+    if (ch === '|' && depth === 0) { cells.push(cur.trim()); cur = ''; } else cur += ch;
+  }
+  cells.push(cur.trim());
+  return cells;
+}
+function md(src) {
+  const lines = String(src).replace(/\r/g, '').split('\n');
+  let out = '', i = 0;
+  const listStack = [];
+  const closeLists = (depth = 0) => { while (listStack.length > depth) out += `</${listStack.pop()}>`; };
+  while (i < lines.length) {
+    let line = lines[i];
+    if (/^```/.test(line)) {
+      closeLists(); let code = ''; i++;
+      while (i < lines.length && !/^```/.test(lines[i])) code += lines[i++] + '\n';
+      i++; out += `<pre><code>${esc(code)}</code></pre>`; continue;
+    }
+    if (/^\s*\|.*\|\s*$/.test(line) && i + 1 < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[i + 1])) {
+      closeLists();
+      const cells = l => splitCells(l).map(c => inlineMD(c));
+      const head = cells(line); i += 2;
+      let rows = '';
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) { rows += '<tr>' + cells(lines[i]).map(c => `<td>${c}</td>`).join('') + '</tr>'; i++; }
+      out += `<table><thead><tr>${head.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`; continue;
+    }
+    let m;
+    if ((m = /^(#{1,6})\s+(.*)$/.exec(line))) { closeLists(); const l = Math.min(m[1].length + 1, 4); out += `<h${l}>${inlineMD(m[2].replace(/\s*#+\s*$/, ''))}</h${l}>`; i++; continue; }
+    if ((m = /^(\s*)([-*•]|\d+[.、)])\s+(.*)$/.exec(line))) {
+      const depth = Math.floor(m[1].replace(/\t/g, '  ').length / 2) + 1;
+      const type = /^\d/.test(m[2]) ? 'ol' : 'ul';
+      while (listStack.length > depth) out += `</${listStack.pop()}>`;
+      while (listStack.length < depth) { out += `<${type}>`; listStack.push(type); }
+      out += `<li>${inlineMD(m[3])}</li>`; i++; continue;
+    }
+    if ((m = /^>\s?(.*)$/.exec(line))) { closeLists(); out += `<blockquote>${inlineMD(m[1])}</blockquote>`; i++; continue; }
+    if (/^\s*$/.test(line)) { closeLists(); i++; continue; }
+    if (/^\s*(-{3,}|\*{3,})\s*$/.test(line)) { closeLists(); out += '<hr>'; i++; continue; }
+    closeLists();
+    let para = [line]; i++;
+    while (i < lines.length && lines[i].trim() && !/^(#{1,6}\s|\s*([-*•]|\d+[.、)])\s|>|```|\s*\|)/.test(lines[i])) para.push(lines[i++]);
+    out += `<p>${para.map(inlineMD).join('<br>')}</p>`;
+  }
+  closeLists();
+  return out;
+}
+
+/* ---------- API ---------- */
+function apiErrorText(status, msg) {
+  if (status === 401) return 'API Key 无效或未填写，请到设置检查。';
+  if (status === 402) return '账户余额不足，请到 DeepSeek 平台充值。';
+  if (status === 429) return '请求过于频繁，稍等几秒再试。';
+  if (status >= 500) return '服务端暂时出错，请稍后重试。';
+  return `请求失败（${status}）：${msg}`;
+}
+function isDeepSeek() { return /deepseek/i.test(settings.baseUrl || DEFAULT_BASE); }
+async function streamChat({ messages, thinking = false, effort = null, maxTokens = 4096, signal, onDelta, onReasoning }) {
+  const base = (settings.baseUrl || DEFAULT_BASE).replace(/\/+$/, '');
+  const body = { model: settings.model, messages, stream: true, max_tokens: maxTokens };
+  if (isDeepSeek()) {
+    body.thinking = { type: thinking ? 'enabled' : 'disabled' };
+    if (thinking && effort) body.reasoning_effort = effort;
+  }
+  let res;
+  try {
+    res = await fetch(base + '/chat/completions', {
+      method: 'POST', signal,
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + settings.apiKey },
+      body: JSON.stringify(body)
+    });
+  } catch (e) {
+    if (e.name === 'AbortError') throw e;
+    throw new Error('网络连接失败，请检查网络或 API 地址。');
+  }
+  if (!res.ok) {
+    let msg = res.statusText;
+    try { const j = await res.json(); msg = j.error?.message || JSON.stringify(j); } catch { }
+    throw new Error(apiErrorText(res.status, msg));
+  }
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '';
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let idx;
+    while ((idx = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, idx).trim(); buf = buf.slice(idx + 1);
+      if (!line.startsWith('data:')) continue;
+      const data = line.slice(5).trim();
+      if (data === '[DONE]') return;
+      try {
+        const j = JSON.parse(data);
+        const d = j.choices?.[0]?.delta;
+        if (!d) continue;
+        if (d.reasoning_content) onReasoning?.(d.reasoning_content);
+        if (d.content) onDelta(d.content);
+      } catch { }
+    }
+  }
+}
+
+/* ---------- 提示词 ---------- */
+const RUBY_RULE = '日语译文里所有含汉字的词必须按词用 {漢字|よみ} 标注读音，例如：{今日|きょう}は{天気|てんき}がいいから、{散歩|さんぽ}に{行|い}こう。假名部分不要加标注，不要用其他标注格式。';
+function transSystem(box, srcLang) {
+  const from = LANG_NAME[srcLang];
+  const style = {
+    ja_casual: `把用户发来的${from}翻译成自然的日语口语（タメ口，朋友、家人之间平时说话的方式）。要像日本人日常真的会说出来的话：优先用地道的口语表达、缩约形和自然的语气词，不要生硬直译，不要书面语。`,
+    ja_polite: `把用户发来的${from}翻译成自然、得体的日语敬语。以です・ます体为基础，适合对同事、客户、店员或不熟的人说；场合需要时自然使用尊敬语和谦让语，但不要堆砌、不要过度客气，要像日本职场里真实的说法。`,
+    en_casual: `把用户发来的${from}翻译成自然的美式英语口语。要像美国人日常真的会说的话：地道的搭配、口语化的节奏和缩写，不要翻译腔，不要过于正式。`,
+    zh: `把用户发来的${from}翻译成自然的简体中文。要像中国人平时说话的方式，不要翻译腔，保留原文的语气和分寸。`
+  }[box.key];
+  return `你是一位同时精通中文、日语和英语的母语级翻译。${style}
+规则：
+- 只输出译文本身，不要解释、不要注释、不要引号、不要任何前缀。
+- 保持原文的语气、信息量和分句；原文有几句，译文就对应几句。
+- 原文如果只是一个词或短语，就给出最贴切的对应说法；如果有几种常见说法，最多给 3 个，用「 / 」分隔。
+- 原文如果有多种解读，选最常见、最自然的那一种，不要在译文里说明。
+${box.lang === 'ja' ? '- ' + RUBY_RULE : ''}`.trim();
+}
+function anaSystem() {
+  return `你是一位精通中文、日语、英语的语言老师，正在辅导一位母语为简体中文的学习者。学习者情况：日语 N1（低分通过），阅读还行但口语和实际运用较弱；英语托福 90 分左右。
+解说一律用简体中文，直接给内容，不要寒暄和总结性废话。
+格式要求：
+- 用 Markdown：用「## 」二级标题分节，要点用「- 」列表，对比用表格。
+- 所有日语文本（包括例句）中含汉字的词按词用 {漢字|よみ} 标注读音，例如 {勉強|べんきょう}する、{気|き}になる。
+- 英语重点词或短语后面用 /…/ 给出美式音标。
+- 日语讲解面向 N1 学习者：不讲基础助词、基本活用等入门内容，聚焦语感差异、口语缩约、语体与敬语层级、日本人实际常用的说法、中国学习者容易犯的错误。
+- 英语讲解相对简洁：只讲地道搭配、口语化表达、语气差别和中式英语陷阱，不讲基础语法。
+- 中文文本只在必要时点评表达选择。
+- 例句要短、贴近日常生活，每句附中文翻译。`;
+}
+function anaUser({ text, lang, mode, isTranslation, srcText, srcLang }) {
+  const L = LANG_NAME[lang];
+  if (mode === 'deep') {
+    if (lang === 'zh') {
+      return `下面是一个中文表达。请深究它在日语和英语里最自然的对应说法：
+文本：${text}
+
+按以下结构输出：
+## 日语对应说法
+给出 3～5 种日语说法，按口语/敬语/书面分类，说明各自的语气和使用场合，每条附一个短例句。
+## 英语对应说法
+给出 3～5 种美式英语说法，说明语气差别和使用场合，每条附一个短例句。
+## 对比与注意点
+中国学习者翻译这个表达时容易出现的问题，以及日本人、美国人实际更常怎么说。`;
+    }
+    return `下面是一个较短的${L}表达，可能是单词、短语或语法片段。请做详细的语法深究：
+文本：${text}
+
+按以下结构输出：
+## 含义与用法
+核心含义、使用场景、语气色彩（口语还是书面、礼貌程度、情感倾向）。
+## 接续与变形
+前后接续规则、常见变形、固定搭配。${lang === 'ja' ? '如果是语法句型，说明接续在哪种形之后。' : ''}
+## 例句
+5 个例句，覆盖不同场景和语体，每句附中文翻译，并用一句话点出用法重点。
+## 近似表达对比
+用表格对比 2～4 个相近表达的差别：含义、语气、使用场合。
+## 口语实战
+${lang === 'ja' ? '日本人' : '美国人'}在日常口语里怎么用、多常用、有哪些缩约或变体，什么场合不能用。
+## 注意点
+易混淆点和常见错误。`;
+  }
+  const role = isTranslation
+    ? `这段文本是对下面原文（${LANG_NAME[srcLang]}）的译文，分析时请结合原文，说明翻译处理的方式和地道之处。\n原文：${srcText}\n`
+    : '';
+  const vocab = lang === 'ja'
+    ? '先给出整段文本的带读音版本（{漢字|よみ}），再列出 3～8 个重点词：读音、词性、含义、常见搭配或一个短例句。'
+    : lang === 'en'
+      ? '列出 3～6 个重点词或短语：音标、含义、用法说明。'
+      : '列出关键表达并简要说明。';
+  return `请分析下面这段${L}文本。
+${role}文本：
+${text}
+
+按以下结构输出：
+## 读音与重点词
+${vocab}
+## 语法与句型
+解释文本中值得注意的句型、语法点、语气与语体，说明为什么这样说更自然。
+## 替换表达
+给 2～3 种可替换的说法，说明语体或语气上的差别。
+## 注意点
+常见误用，或中国学习者容易出错的地方。`;
+}
+
+/* ---------- 翻译流程 ---------- */
+function cancelRun() {
+  if (state.abort) { try { state.abort.abort(); } catch { } }
+  state.abort = null;
+  Object.values(state.anaAborts).forEach(a => { try { a.abort(); } catch { } });
+  state.anaAborts = {};
+}
+function renderResults(plan) {
+  const wrap = $('#results');
+  wrap.innerHTML = '';
+  for (const box of plan) {
+    const el = document.createElement('section');
+    el.className = 'card rcard';
+    el.id = 'box-' + box.key;
+    el.dataset.key = box.key; el.dataset.lang = box.lang;
+    el.innerHTML = `
+      <div class="rhead"><span class="label">${box.label}</span><span class="status"></span></div>
+      <div class="body"><div class="out"></div></div>
+      <div class="rfoot">
+        <span class="hint">点击译文查看词汇与语法分析</span>
+        <button class="sbtn" data-act="copy" title="复制">${ICONS.copy}</button>
+        <button class="sbtn" data-act="speak" title="朗读">${ICONS.speak}</button>
+        <button class="sbtn" data-act="analyze" title="词汇与语法分析">${ICONS.analyze}</button>
+      </div>
+      <div class="analysis" hidden>
+        <div class="ahead"><span class="atitle">译文分析</span><span class="astatus"></span><button class="aclose">收起</button></div>
+        <div class="md"></div>
+      </div>`;
+    wrap.appendChild(el);
+  }
+}
+function renderPlaceholder(plan) {
+  renderResults(plan);
+  for (const box of plan) {
+    const el = document.getElementById('box-' + box.key);
+    el.classList.add('placeholder');
+    el.querySelector('.out').textContent = '译文';
+  }
+}
+function setDetected(lang, manual) {
+  const d = $('#detected');
+  if (!lang) { d.innerHTML = state.lang === 'auto' ? '输入后自动识别语言' : `已指定：<b>${LANG_NAME[state.lang]}</b>`; return; }
+  d.innerHTML = manual ? `已指定：<b>${LANG_NAME[lang]}</b>` : `检测到：<b>${LANG_NAME[lang]}</b>`;
+}
+function cleanOutput(s) {
+  s = s.trim();
+  s = s.replace(/^(译文|翻訳|Translation)\s*[:：]\s*/i, '');
+  return s;
+}
+async function translate() {
+  const text = $('#src').value.trim();
+  cancelRun();
+  stopSpeak();
+  if (!text) { $('#results').innerHTML = ''; state.current = null; state.plan = []; hideSrcAnalysis(); return; }
+  const lang = effectiveLang(text);
+  if (!lang) { setDetected(null); $('#detected').innerHTML = '无法识别语言，请手动选择'; return; }
+  setDetected(lang, state.lang !== 'auto');
+  if (!settings.apiKey) { $('#banner').hidden = false; openSettings(); return; }
+  const runId = ++state.runId;
+  state.abort = new AbortController();
+  const plan = PLANS[lang];
+  state.plan = plan;
+  const item = { id: 'h' + now() + Math.random().toString(36).slice(2, 6), ts: now(), updated: now(), src: text, lang, outputs: {}, analyses: {}, fav: false };
+  state.current = item;
+  state.lastTranslated = text;
+  renderResults(plan);
+  hideSrcAnalysis(true);
+  const tasks = plan.map(box => runBox(box, text, lang, runId, item));
+  if (isShortPhrase(text, lang)) analyze('src', 'deep');
+  await Promise.all(tasks);
+}
+async function runBox(box, text, lang, runId, item) {
+  const el = document.getElementById('box-' + box.key);
+  if (!el) return;
+  const out = el.querySelector('.out');
+  const status = el.querySelector('.status');
+  out.innerHTML = ''; out.classList.add('streaming'); el.classList.remove('done');
+  let acc = '';
+  try {
+    await streamChat({
+      messages: [{ role: 'system', content: transSystem(box, lang) }, { role: 'user', content: text }],
+      thinking: settings.thinkTrans, effort: settings.thinkTrans ? 'low' : null, maxTokens: 4096,
+      signal: state.abort.signal,
+      onDelta: d => { if (runId !== state.runId) return; acc += d; status.textContent = ''; out.innerHTML = rubyHTML(acc, true); },
+      onReasoning: () => { if (runId === state.runId && !acc) status.textContent = '思考中…'; }
+    });
+    if (runId !== state.runId) return;
+    acc = cleanOutput(acc);
+    item.outputs[box.key] = acc; item.updated = now();
+    out.innerHTML = rubyHTML(acc, false);
+    el.classList.add('done');
+    upsertHistory(item);
+  } catch (e) {
+    if (e.name === 'AbortError' || runId !== state.runId) return;
+    out.innerHTML = `<span class="err">${esc(e.message)}<a data-retry>重试</a></span>`;
+    out.querySelector('[data-retry]').onclick = ev => { ev.stopPropagation(); runBox(box, text, lang, runId, item); };
+  } finally {
+    if (runId === state.runId) { out.classList.remove('streaming'); status.textContent = ''; }
+  }
+}
+
+/* ---------- 分析 ---------- */
+function panelFor(target) {
+  if (target === 'src') return $('#srcAnalysis');
+  const el = document.getElementById('box-' + target);
+  return el ? el.querySelector('.analysis') : null;
+}
+function hideSrcAnalysis(reset) {
+  const p = $('#srcAnalysis'); p.hidden = true;
+  if (reset) { p.dataset.loaded = ''; p.dataset.mode = ''; p.querySelector('.md').innerHTML = ''; }
+}
+async function analyze(target, mode = 'normal', { toggle = false } = {}) {
+  const item = state.current;
+  if (!item) { toast('请先输入内容并翻译'); return; }
+  const panel = panelFor(target);
+  if (!panel) return;
+  const mdEl = panel.querySelector('.md');
+  const st = panel.querySelector('.astatus');
+  const titleEl = panel.querySelector('.atitle');
+
+  // 点击切换：已展开且已加载 → 收起
+  if (toggle && !panel.hidden && panel.dataset.loaded) { panel.hidden = true; return; }
+  // 深究按钮：如果已经是深究结果，仅展开
+  if (!panel.hidden && panel.dataset.loaded && panel.dataset.mode === mode) return;
+
+  const isSrc = target === 'src';
+  let text, lang;
+  if (isSrc) { text = item.src; lang = item.lang; }
+  else {
+    text = item.outputs[target]; lang = state.plan.find(b => b.key === target)?.lang;
+    if (!text) { toast('等译文出来再分析'); return; }
+  }
+
+  panel.hidden = false;
+  titleEl.textContent = isSrc ? (mode === 'deep' ? '语法深究' : '原文分析') : '译文分析';
+
+  const cached = item.analyses[target];
+  if (cached && cached.mode === mode && cached.md) {
+    mdEl.innerHTML = md(cached.md); panel.dataset.loaded = '1'; panel.dataset.mode = mode; st.textContent = ''; mdEl.classList.remove('streaming');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return;
+  }
+
+  if (state.anaAborts[target]) { try { state.anaAborts[target].abort(); } catch { } }
+  const ac = new AbortController(); state.anaAborts[target] = ac;
+  panel.dataset.loaded = ''; panel.dataset.mode = mode;
+  mdEl.innerHTML = ''; mdEl.classList.add('streaming'); st.textContent = '分析中…';
+  let acc = '';
+  const thinking = settings.thinkAna !== 'off';
+  try {
+    await streamChat({
+      messages: [{ role: 'system', content: anaSystem() }, {
+        role: 'user', content: anaUser({ text: stripRuby(text), lang, mode, isTranslation: !isSrc, srcText: item.src, srcLang: item.lang })
+      }],
+      thinking, effort: thinking ? settings.thinkAna : null, maxTokens: 8192, signal: ac.signal,
+      onDelta: d => { acc += d; st.textContent = ''; mdEl.innerHTML = md(acc); },
+      onReasoning: () => { if (!acc) st.textContent = '思考中…'; }
+    });
+    if (ac.signal.aborted) return;
+    mdEl.innerHTML = md(acc);
+    panel.dataset.loaded = '1';
+    item.analyses[target] = { mode, md: acc, lang }; item.updated = now();
+    upsertHistory(item);
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+    mdEl.innerHTML = `<p class="err">${esc(e.message)}</p>`;
+  } finally {
+    if (!ac.signal.aborted) { mdEl.classList.remove('streaming'); st.textContent = ''; }
+    if (state.anaAborts[target] === ac) delete state.anaAborts[target];
+  }
+}
+
+/* ---------- 朗读 ---------- */
+let voicesReady = false;
+if ('speechSynthesis' in window) {
+  speechSynthesis.onvoiceschanged = () => { voicesReady = true; };
+  speechSynthesis.getVoices();
+}
+function pickVoice(lang) {
+  const voices = speechSynthesis.getVoices();
+  const target = SPEECH_LANG[lang];
+  const prefix = target.split('-')[0];
+  const cands = voices.filter(v => v.lang.replace('_', '-').toLowerCase().startsWith(prefix));
+  if (!cands.length) return null;
+  const prefer = ['Kyoko', 'Otoya', 'O-ren', 'Hattori', 'Google 日本語', 'Samantha', 'Ava', 'Allison', 'Google US English', 'Tingting', 'Ting-Ting', 'Meijia', 'Google 普通话'];
+  for (const p of prefer) { const v = cands.find(c => c.name.includes(p)); if (v) return v; }
+  return cands.find(v => v.lang.replace('_', '-').toLowerCase() === target.toLowerCase()) || cands[0];
+}
+function speak(text, lang) {
+  if (!('speechSynthesis' in window)) { toast('此浏览器不支持朗读'); return; }
+  const t = stripRuby(text).trim(); if (!t) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(t);
+  u.lang = SPEECH_LANG[lang] || 'en-US';
+  const v = pickVoice(lang); if (v) u.voice = v;
+  u.rate = lang === 'ja' ? 0.95 : 1;
+  speechSynthesis.speak(u);
+}
+function stopSpeak() { if ('speechSynthesis' in window) speechSynthesis.cancel(); }
+
+/* ---------- 历史与收藏 ---------- */
+function persistHistory() { saveJSON(LS.history, history); saveJSON(LS.deleted, deleted.slice(-1000)); scheduleSync(); }
+function upsertHistory(item) {
+  const i = history.findIndex(h => h.id === item.id);
+  const copy = JSON.parse(JSON.stringify(item));
+  if (i >= 0) history[i] = copy; else history.unshift(copy);
+  pruneHistory();
+  persistHistory();
+  if ($('#drawer').classList.contains('show')) renderHistory();
+}
+function pruneHistory() {
+  history.sort((a, b) => b.ts - a.ts);
+  const MAX = 400;
+  if (history.length > MAX) {
+    let n = 0;
+    history = history.filter(h => h.fav || (n++ < MAX));
+  }
+}
+function removeHistory(id) {
+  history = history.filter(h => h.id !== id);
+  if (!deleted.includes(id)) deleted.push(id);
+  persistHistory(); renderHistory();
+}
+function toggleFav(id) {
+  const h = history.find(x => x.id === id); if (!h) return;
+  h.fav = !h.fav; h.updated = now();
+  if (state.current && state.current.id === id) state.current.fav = h.fav;
+  persistHistory(); renderHistory();
+  toast(h.fav ? '已收藏' : '已取消收藏');
+}
+function renderHistory() {
+  const list = $('#hlist');
+  const q = $('#hsearch').value.trim().toLowerCase();
+  let items = history.filter(h => state.drawerTab === 'fav' ? h.fav : true);
+  if (q) items = items.filter(h => (h.src + ' ' + Object.values(h.outputs || {}).join(' ')).toLowerCase().includes(q));
+  if (!items.length) { list.innerHTML = `<div class="empty">${state.drawerTab === 'fav' ? '还没有收藏。点记录右侧的星星即可收藏。' : '还没有记录。'}</div>`; return; }
+  list.innerHTML = items.map(h => {
+    const first = Object.values(h.outputs || {})[0] || '';
+    return `<div class="hitem" data-id="${h.id}">
+      <div class="hsrc">${esc(h.src)}</div>
+      <div class="hout">${esc(stripRuby(first))}</div>
+      <div class="hmeta">${LANG_NAME[h.lang] || ''} · ${fmtTime(h.ts)}${h.analyses && Object.keys(h.analyses).length ? ' · 含分析' : ''}</div>
+      <div class="hbtns">
+        <button class="sbtn ${h.fav ? 'on' : ''}" data-fav title="收藏">${h.fav ? ICONS.star : ICONS.starO}</button>
+        <button class="sbtn" data-del title="删除">${ICONS.trash}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function loadHistoryItem(id) {
+  const h = history.find(x => x.id === id); if (!h) return;
+  cancelRun(); stopSpeak();
+  const item = JSON.parse(JSON.stringify(h));
+  state.current = item; state.lastTranslated = item.src;
+  state.runId++;
+  $('#src').value = item.src; autosize(); updateCount();
+  state.lang = 'auto'; $$('#langSeg button').forEach(b => b.classList.toggle('on', b.dataset.lang === 'auto'));
+  setDetected(item.lang, false);
+  const plan = PLANS[item.lang]; state.plan = plan;
+  renderResults(plan);
+  hideSrcAnalysis(true);
+  for (const box of plan) {
+    const el = document.getElementById('box-' + box.key);
+    const out = el.querySelector('.out');
+    const t = item.outputs[box.key];
+    if (t) { out.innerHTML = rubyHTML(t, false); el.classList.add('done'); }
+    else { out.innerHTML = '<span class="err">这条记录没有保存此译文<a data-retry>翻译</a></span>'; out.querySelector('[data-retry]').onclick = ev => { ev.stopPropagation(); state.abort = state.abort || new AbortController(); runBox(box, item.src, item.lang, state.runId, item); }; }
+  }
+  closeDrawer();
+}
+
+/* ---------- Gist 同步 ---------- */
+const GIST_FILE = 'yixue-data.json';
+let syncTimer = null, syncing = false;
+function scheduleSync() {
+  if (!settings.gistToken) return;
+  state.dirty = true;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => syncNow(false), 4000);
+}
+function gistHeaders() {
+  return { 'Authorization': 'Bearer ' + settings.gistToken, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' };
+}
+function mergeData(remote) {
+  const map = new Map();
+  for (const it of [...(remote.history || []), ...history]) {
+    const prev = map.get(it.id);
+    if (!prev || (it.updated || it.ts) > (prev.updated || prev.ts)) map.set(it.id, it);
+  }
+  const del = new Set([...(remote.deleted || []), ...deleted]);
+  history = [...map.values()].filter(h => !del.has(h.id));
+  deleted = [...del].slice(-1000);
+  pruneHistory();
+  saveJSON(LS.history, history); saveJSON(LS.deleted, deleted);
+}
+async function findExistingGist() {
+  const res = await fetch('https://api.github.com/gists?per_page=100', { headers: gistHeaders() });
+  if (!res.ok) throw new Error('无法读取 Gist 列表（' + res.status + '）');
+  const arr = await res.json();
+  const g = arr.find(g => g.files && g.files[GIST_FILE]);
+  return g ? g.id : null;
+}
+async function syncNow(manual) {
+  if (!settings.gistToken) { if (manual) toast('请先填写 GitHub Token'); return; }
+  if (syncing) return;
+  syncing = true;
+  const st = $('#syncStatus');
+  const setSt = (msg, cls) => { if (st) { st.textContent = msg; st.className = 'status-line ' + (cls || ''); } };
+  try {
+    setSt('同步中…');
+    if (!settings.gistId) {
+      const id = await findExistingGist();
+      if (id) { settings.gistId = id; saveJSON(LS.settings, settings); }
+    }
+    let remote = null;
+    if (settings.gistId) {
+      const res = await fetch('https://api.github.com/gists/' + settings.gistId, { headers: gistHeaders(), cache: 'no-store' });
+      if (res.status === 404) { settings.gistId = ''; saveJSON(LS.settings, settings); }
+      else if (!res.ok) throw new Error('读取 Gist 失败（' + res.status + '）');
+      else {
+        const g = await res.json();
+        const f = g.files[GIST_FILE];
+        if (f) {
+          let content = f.content;
+          if (f.truncated) { const r = await fetch(f.raw_url); content = await r.text(); }
+          try { remote = JSON.parse(content); } catch { remote = null; }
+        }
+      }
+    }
+    const beforeHash = JSON.stringify(history) + JSON.stringify(deleted);
+    if (remote) mergeData(remote);
+    const afterHash = JSON.stringify(history) + JSON.stringify(deleted);
+    const remoteHash = remote ? JSON.stringify(remote.history || []) + JSON.stringify(remote.deleted || []) : '';
+    const needPush = !settings.gistId || afterHash !== remoteHash;
+    if (needPush) {
+      const payload = { version: 1, updatedAt: now(), history, deleted };
+      const body = JSON.stringify({ description: '译学 · 翻译学习记录（自动同步）', public: false, files: { [GIST_FILE]: { content: JSON.stringify(payload) } } });
+      const url = settings.gistId ? 'https://api.github.com/gists/' + settings.gistId : 'https://api.github.com/gists';
+      const res = await fetch(url, { method: settings.gistId ? 'PATCH' : 'POST', headers: gistHeaders(), body });
+      if (!res.ok) {
+        if (res.status === 401) throw new Error('GitHub Token 无效');
+        if (res.status === 403 || res.status === 404) throw new Error('Token 缺少 gist 权限');
+        throw new Error('写入 Gist 失败（' + res.status + '）');
+      }
+      const g = await res.json();
+      if (!settings.gistId) { settings.gistId = g.id; saveJSON(LS.settings, settings); }
+    }
+    state.dirty = false;
+    localStorage.setItem(LS.lastSync, String(now()));
+    setSt('已同步 · ' + fmtTime(now()), 'ok');
+    if (afterHash !== beforeHash) { renderHistory(); if (manual) toast('已合并其他设备的记录'); }
+    else if (manual) toast('同步完成');
+  } catch (e) {
+    setSt('同步失败：' + e.message, 'err');
+    if (manual) toast('同步失败：' + e.message, 3500);
+  } finally { syncing = false; }
+}
+
+/* ---------- 设置 ---------- */
+function applyTheme() {
+  const t = settings.theme === 'auto' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : settings.theme;
+  document.documentElement.dataset.theme = t;
+  document.querySelector('meta[name=theme-color]').setAttribute('content', t === 'dark' ? '#2d2e30' : '#1a73e8');
+}
+function applyFuri() { document.body.classList.toggle('furi', !!settings.furi); $('#btnFuri').classList.toggle('on', !!settings.furi); }
+function openSettings() {
+  $('#sApiKey').value = settings.apiKey; $('#sBaseUrl').value = settings.baseUrl; $('#sModel').value = settings.model;
+  $('#sThinkTrans').checked = settings.thinkTrans; $('#sThinkAna').value = settings.thinkAna; $('#sAuto').checked = settings.auto;
+  $('#sTheme').value = settings.theme; $('#sGistToken').value = settings.gistToken;
+  $('#testStatus').textContent = ''; $('#testStatus').className = 'status-line';
+  const ls = Number(localStorage.getItem(LS.lastSync) || 0);
+  $('#syncStatus').textContent = settings.gistToken ? (ls ? '上次同步：' + fmtTime(ls) : '尚未同步') : '';
+  $('#syncStatus').className = 'status-line';
+  $('#settings').hidden = false;
+  if (!settings.apiKey) setTimeout(() => $('#sApiKey').focus(), 50);
+}
+function closeSettings() { $('#settings').hidden = true; }
+function saveSettings() {
+  const prevToken = settings.gistToken;
+  settings.apiKey = $('#sApiKey').value.trim();
+  settings.baseUrl = ($('#sBaseUrl').value.trim() || DEFAULT_BASE);
+  settings.model = $('#sModel').value;
+  settings.thinkTrans = $('#sThinkTrans').checked;
+  settings.thinkAna = $('#sThinkAna').value;
+  settings.auto = $('#sAuto').checked;
+  settings.theme = $('#sTheme').value;
+  settings.gistToken = $('#sGistToken').value.trim();
+  if (settings.gistToken !== prevToken) settings.gistId = '';
+  saveJSON(LS.settings, settings);
+  applyTheme();
+  $('#banner').hidden = !!settings.apiKey;
+  closeSettings();
+  toast('设置已保存');
+  if (settings.gistToken) syncNow(false);
+}
+async function testConnection() {
+  const st = $('#testStatus');
+  const key = $('#sApiKey').value.trim();
+  const base = ($('#sBaseUrl').value.trim() || DEFAULT_BASE).replace(/\/+$/, '');
+  if (!key) { st.textContent = '请先填写 API Key'; st.className = 'status-line err'; return; }
+  st.textContent = '连接中…'; st.className = 'status-line';
+  try {
+    const body = { model: $('#sModel').value, messages: [{ role: 'user', content: '回复「OK」两个字母即可。' }], max_tokens: 8, stream: false };
+    if (/deepseek/i.test(base)) body.thinking = { type: 'disabled' };
+    const res = await fetch(base + '/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key }, body: JSON.stringify(body) });
+    if (!res.ok) { let msg = ''; try { msg = (await res.json()).error?.message || ''; } catch { } throw new Error(apiErrorText(res.status, msg)); }
+    st.textContent = '连接成功'; st.className = 'status-line ok';
+  } catch (e) { st.textContent = e.message || '连接失败'; st.className = 'status-line err'; }
+}
+function exportBackup() {
+  const payload = { version: 1, exportedAt: now(), history, deleted };
+  const blob = new Blob([JSON.stringify(payload, null, 1)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `yixue-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function importBackup(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const data = JSON.parse(r.result);
+      if (!Array.isArray(data.history)) throw new Error('格式不对');
+      mergeData(data); persistHistory(); renderHistory(); toast(`已导入，现有 ${history.length} 条记录`);
+    } catch (e) { toast('导入失败：' + e.message); }
+  };
+  r.readAsText(file);
+}
+
+/* ---------- 抽屉 ---------- */
+function openDrawer() { renderHistory(); $('#drawer').classList.add('show'); $('#scrim').classList.add('show'); }
+function closeDrawer() { $('#drawer').classList.remove('show'); $('#scrim').classList.remove('show'); }
+
+/* ---------- 输入框 ---------- */
+const srcEl = $('#src');
+function autosize() { srcEl.style.height = 'auto'; srcEl.style.height = Math.min(srcEl.scrollHeight, innerHeight * 0.5) + 'px'; }
+function updateCount() { const n = srcEl.value.length; $('#count').textContent = n ? `${n} 字` : ''; }
+let typingTimer = null;
+function onInput() {
+  autosize(); updateCount();
+  const text = srcEl.value.trim();
+  const lang = effectiveLang(text);
+  setDetected(lang, state.lang !== 'auto');
+  clearTimeout(typingTimer);
+  if (!text) { cancelRun(); $('#results').innerHTML = ''; hideSrcAnalysis(true); state.current = null; state.lastTranslated = ''; return; }
+  if (settings.auto) typingTimer = setTimeout(() => { if (srcEl.value.trim() !== state.lastTranslated) translate(); }, 1000);
+}
+
+/* ---------- 事件绑定 ---------- */
+function bind() {
+  $('#btnHistory').innerHTML = ICONS.history; $('#btnTheme').innerHTML = ICONS.theme; $('#btnSettings').innerHTML = ICONS.settings;
+  $('#btnCloseDrawer').innerHTML = ICONS.close;
+  $('#btnClear').innerHTML = ICONS.clear + '<span class="lbl">清空</span>'; $('#btnSpeakSrc').innerHTML = ICONS.speak + '<span class="lbl">朗读</span>';
+  $('#btnAnalyzeSrc').innerHTML = ICONS.analyze + '<span class="lbl">分析</span>'; $('#btnDeep').innerHTML = ICONS.deep + '<span class="lbl">深究</span>';
+
+  srcEl.addEventListener('input', onInput);
+  srcEl.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); clearTimeout(typingTimer); translate(); }
+  });
+  $('#btnTranslate').onclick = () => { clearTimeout(typingTimer); translate(); };
+  $('#btnClear').onclick = () => { srcEl.value = ''; onInput(); srcEl.focus(); };
+  $('#btnSpeakSrc').onclick = () => { const t = srcEl.value.trim(); if (!t) return; speak(t, effectiveLang(t) || 'en'); };
+  $('#btnAnalyzeSrc').onclick = () => ensureCurrent(() => analyze('src', 'normal', { toggle: true }));
+  $('#btnDeep').onclick = () => ensureCurrent(() => analyze('src', 'deep'));
+  $('#srcAnalysis .aclose').onclick = () => { $('#srcAnalysis').hidden = true; };
+
+  $$('#langSeg button').forEach(b => b.onclick = () => {
+    state.lang = b.dataset.lang;
+    $$('#langSeg button').forEach(x => x.classList.toggle('on', x === b));
+    const text = srcEl.value.trim();
+    setDetected(effectiveLang(text), state.lang !== 'auto');
+    if (text) { clearTimeout(typingTimer); translate(); }
+  });
+
+  $('#results').addEventListener('click', e => {
+    const card = e.target.closest('.rcard'); if (!card) return;
+    const key = card.dataset.key, lang = card.dataset.lang;
+    const act = e.target.closest('[data-act]')?.dataset.act;
+    if (e.target.closest('.aclose')) { card.querySelector('.analysis').hidden = true; return; }
+    if (e.target.closest('.analysis')) return;
+    const text = state.current?.outputs[key];
+    if (act === 'copy') { if (!text) return; navigator.clipboard?.writeText(stripRuby(text)).then(() => toast('已复制')).catch(() => toast('复制失败')); return; }
+    if (act === 'speak') { if (!text) return; speak(text, lang); return; }
+    if (act === 'analyze' || e.target.closest('.body')) { if (!card.classList.contains('done')) return; analyze(key, 'normal', { toggle: true }); }
+  });
+
+  $('#btnFuri').onclick = () => { settings.furi = !settings.furi; saveJSON(LS.settings, settings); applyFuri(); toast(settings.furi ? '显示振假名' : '隐藏振假名', 1200); };
+  $('#btnTheme').onclick = () => {
+    const order = ['auto', 'light', 'dark']; settings.theme = order[(order.indexOf(settings.theme) + 1) % 3];
+    saveJSON(LS.settings, settings); applyTheme(); toast({ auto: '主题：跟随系统', light: '主题：浅色', dark: '主题：深色' }[settings.theme], 1200);
+  };
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+
+  $('#btnHistory').onclick = openDrawer; $('#btnCloseDrawer').onclick = closeDrawer; $('#scrim').onclick = closeDrawer;
+  $$('.tabs button').forEach(b => b.onclick = () => { state.drawerTab = b.dataset.tab; $$('.tabs button').forEach(x => x.classList.toggle('on', x === b)); renderHistory(); });
+  $('#hsearch').addEventListener('input', renderHistory);
+  $('#hlist').addEventListener('click', e => {
+    const it = e.target.closest('.hitem'); if (!it) return;
+    const id = it.dataset.id;
+    if (e.target.closest('[data-fav]')) { toggleFav(id); return; }
+    if (e.target.closest('[data-del]')) { removeHistory(id); return; }
+    loadHistoryItem(id);
+  });
+
+  $('#btnSettings').onclick = openSettings; $('#bannerBtn').onclick = openSettings;
+  $('#btnCloseSettings').onclick = closeSettings; $('#btnSaveSettings').onclick = saveSettings;
+  $('#settings').addEventListener('click', e => { if (e.target === $('#settings')) closeSettings(); });
+  $('#btnEye').onclick = () => { const i = $('#sApiKey'); i.type = i.type === 'password' ? 'text' : 'password'; $('#btnEye').textContent = i.type === 'password' ? '显示' : '隐藏'; };
+  $('#btnEye2').onclick = () => { const i = $('#sGistToken'); i.type = i.type === 'password' ? 'text' : 'password'; $('#btnEye2').textContent = i.type === 'password' ? '显示' : '隐藏'; };
+  $('#btnTest').onclick = testConnection;
+  $('#btnSync').onclick = () => { settings.gistToken = $('#sGistToken').value.trim(); if (settings.gistToken !== (loadJSON(LS.settings, {}).gistToken || '')) settings.gistId = ''; saveJSON(LS.settings, settings); syncNow(true); };
+  $('#btnExport').onclick = exportBackup;
+  $('#btnImport').onclick = () => $('#importFile').click();
+  $('#importFile').onchange = e => { if (e.target.files[0]) importBackup(e.target.files[0]); e.target.value = ''; };
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeSettings(); closeDrawer(); }
+  });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && settings.gistToken) syncNow(false); });
+  window.addEventListener('resize', autosize);
+}
+function ensureCurrent(fn) {
+  const text = srcEl.value.trim();
+  if (!text) { toast('请先输入内容'); return; }
+  if (!settings.apiKey) { openSettings(); return; }
+  if (!state.current || state.current.src !== text) {
+    // 还没翻译过当前文本：先建立记录再分析（同时触发翻译）
+    clearTimeout(typingTimer);
+    translate().catch(() => { });
+    setTimeout(fn, 0);
+    return;
+  }
+  fn();
+}
+
+/* ---------- 启动 ---------- */
+function init() {
+  bind();
+  applyTheme(); applyFuri();
+  $('#banner').hidden = !!settings.apiKey;
+  $('#verLine').textContent = '译学 v' + APP_VERSION;
+  autosize(); updateCount();
+  // URL 参数：?q=文本（方便从其他地方跳转）
+  const q = new URLSearchParams(location.search).get('q');
+  if (q) { srcEl.value = q; onInput(); }
+  if (settings.gistToken) syncNow(false);
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    navigator.serviceWorker.register('sw.js').catch(() => { });
+  }
+}
+init();
+</script>
+</body>
+</html>
