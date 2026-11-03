@@ -74,11 +74,13 @@ textarea#src{
 textarea#src::placeholder{color:var(--muted);opacity:.8}
 .card-foot{display:flex;align-items:center;gap:6px;padding:4px 8px 8px 14px;flex-wrap:wrap}
 .count{font-size:12px;color:var(--muted);margin-right:auto}
-.tbtn{padding:7px 12px;border-radius:999px;font-size:13px;color:var(--accent);font-weight:500;display:inline-flex;align-items:center;gap:5px}
+.tbtn{padding:9px 14px;min-height:42px;border-radius:999px;font-size:15px;color:var(--accent);font-weight:500;display:inline-flex;align-items:center;gap:6px}
 .tbtn:hover{background:var(--accent-weak)}
-.tbtn svg{width:16px;height:16px;fill:currentColor}
+.tbtn svg{width:21px;height:21px;fill:currentColor}
+.tbtn.on{background:var(--accent-weak)}
 .tbtn:disabled{opacity:.4;cursor:default}
-@media(max-width:420px){.tbtn{padding:8px 9px}.tbtn svg{width:19px;height:19px}.tbtn .lbl{display:none}}
+@media(max-width:600px){.count{display:none}.card-foot{justify-content:flex-end}.tbtn{padding:9px 10px}}
+@media(max-width:340px){.tbtn .lbl{display:none}}
 .pbtn{padding:8px 18px;border-radius:999px;background:var(--accent);color:var(--accent-text);font-weight:600;font-size:14px}
 .pbtn:hover{filter:brightness(1.05)}
 .pbtn:disabled{opacity:.5;cursor:default}
@@ -99,10 +101,17 @@ textarea#src::placeholder{color:var(--muted);opacity:.8}
 .out .err a{color:var(--accent);cursor:pointer;margin-left:6px;text-decoration:underline}
 .rfoot{display:flex;align-items:center;gap:2px;padding:0 6px 6px 8px}
 .rfoot .hint{font-size:12px;color:var(--muted);margin-right:auto;padding-left:6px;opacity:.9}
-.sbtn{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
+.sbtn{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
 .sbtn:hover{background:var(--hover);color:var(--accent)}
-.sbtn svg{width:19px;height:19px;fill:currentColor}
-.sbtn.on{color:var(--accent)}
+.sbtn svg{width:24px;height:24px;fill:currentColor}
+.sbtn.on{color:var(--accent);background:var(--accent-weak)}
+.sbtn[data-act=fav].on,.hitem [data-fav].on{color:#f9ab00;background:transparent}
+@media(max-width:600px){.rfoot .hint{display:none}.rfoot{justify-content:flex-end}}
+.srcwrap{position:relative}
+.srcwrap textarea#src{padding-right:60px}
+.xclear{position:absolute;top:10px;right:10px;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--text);background:var(--hover)}
+.xclear:hover{background:var(--line)}
+.xclear svg{width:26px;height:26px;fill:currentColor}
 .rcard.placeholder .out{color:var(--muted);opacity:.6;font-size:16px}
 
 /* ruby */
@@ -173,8 +182,8 @@ body:not(.furi) .srcview rt{display:none}
 .hitem .hmeta{font-size:11px;color:var(--muted);opacity:.8}
 .hitem .hsrc,.hitem .hout,.hitem .hmeta{grid-column:1;text-align:left}
 .hitem .hbtns{grid-column:2;grid-row:1/4;display:flex;align-items:center;gap:0}
-.hitem .sbtn{width:32px;height:32px}
-.hitem .sbtn svg{width:17px;height:17px}
+.hitem .sbtn{width:40px;height:40px}
+.hitem .sbtn svg{width:20px;height:20px}
 .empty{padding:30px 16px;text-align:center;color:var(--muted);font-size:14px}
 
 /* modal */
@@ -246,8 +255,8 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
     <div class="menu" id="modelMenu" hidden></div>
   </div>
   <button class="iconbtn" id="btnFuri" title="显示 / 隐藏振假名"><span class="kana">あ</span></button>
-  <button class="iconbtn" id="btnHistory" title="历史与收藏"></button>
-  <button class="iconbtn" id="btnTheme" title="切换主题"></button>
+  <button class="iconbtn" id="btnHistory" title="历史记录"></button>
+  <button class="iconbtn" id="btnFav" title="收藏"></button>
   <button class="iconbtn" id="btnSettings" title="设置"></button>
 </header>
 
@@ -264,13 +273,14 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
       </div>
       <div class="detected" id="detected">输入后自动识别语言</div>
     </div>
-    <textarea id="src" placeholder="输入中文、日语或英语…" rows="3" autofocus spellcheck="false"></textarea>
+    <div class="srcwrap">
+      <textarea id="src" placeholder="输入中文、日语或英语…" rows="3" autofocus spellcheck="false"></textarea>
+      <button class="xclear" id="btnClear" title="清空，重新输入" hidden></button>
+    </div>
     <div class="card-foot">
       <span class="count" id="count"></span>
-      <button class="tbtn" id="btnClear" title="清空"></button>
       <button class="tbtn" id="btnSpeakSrc" title="朗读原文"></button>
       <button class="tbtn" id="btnAnalyzeSrc" title="分析原文的词汇与语法"></button>
-      <button class="tbtn" id="btnDeep" title="对这个表达做详细的语法深究"></button>
       <button class="pbtn" id="btnTranslate">翻译</button>
     </div>
     <div class="analysis" id="srcAnalysis" hidden>
@@ -285,8 +295,7 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer" aria-label="历史与收藏">
   <div class="dhead">
-    <span class="dtitle">记录</span>
-    <div class="tabs"><button data-tab="history" class="on">历史</button><button data-tab="fav">收藏</button></div>
+    <span class="dtitle" id="drawerTitle">历史记录</span>
     <span class="spacer"></span>
     <button class="iconbtn" id="btnCloseDrawer" title="关闭"></button>
   </div>
@@ -387,7 +396,7 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
 /* ============================================================
    译学 · 单文件应用
    ============================================================ */
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 const LS = { settings: 'yx.settings', history: 'yx.history', deleted: 'yx.deleted', lastSync: 'yx.lastSync' };
 /* 支持的模型接口。模型列表可在设置里从各家接口实时拉取，这里只是默认候选。 */
 const PROVIDERS = {
@@ -825,13 +834,13 @@ function anaSystem() {
 - 英语讲解相对简洁：只讲地道搭配、口语化表达、语气差别和中式英语陷阱，不讲基础语法。
 - 中文文本只在必要时点评表达选择。
 - 例句要短、贴近日常生活，每句附中文翻译。
-- 常规分析要精炼：重点词 3～6 个，语法点 2～4 个，全文控制在 600 字左右，只讲这段文本里真正值得注意的点；深究模式不受此限制。`;
+- 分析整句时要精炼：重点词 3～6 个，语法点 2～4 个，全文控制在 600 字左右，只讲真正值得注意的点；讲解单词、短语、语法句型时要讲透，不受此限制。`;
 }
-function anaUser({ text, lang, mode, isTranslation, srcText, srcLang }) {
+function anaUser({ text, lang, isTranslation, srcText, srcLang }) {
   const L = LANG_NAME[lang];
-  if (mode === 'deep') {
-    if (lang === 'zh') {
-      return `下面是一个中文表达。请深究它在日语和英语里最自然的对应说法：
+  // 中文原文：学习者要的是「这句话日语、英语怎么说」
+  if (lang === 'zh' && !isTranslation) {
+    return `下面是一个中文表达。请讲解它在日语和英语里最自然的对应说法：
 文本：${text}
 
 按以下结构输出：
@@ -841,37 +850,35 @@ function anaUser({ text, lang, mode, isTranslation, srcText, srcLang }) {
 给出 3～5 种美式英语说法，说明语气差别和使用场合，每条附一个短例句。
 ## 对比与注意点
 中国学习者翻译这个表达时容易出现的问题，以及日本人、美国人实际更常怎么说。`;
-    }
-    return `下面是一个较短的${L}表达，可能是单词、短语或语法片段。请做详细的语法深究：
-文本：${text}
-
-按以下结构输出：
-## 含义与用法
-核心含义、使用场景、语气色彩（口语还是书面、礼貌程度、情感倾向）。
-## 接续与变形
-前后接续规则、常见变形、固定搭配。${lang === 'ja' ? '如果是语法句型，说明接续在哪种形之后。' : ''}
-## 例句
-5 个例句，覆盖不同场景和语体，每句附中文翻译，并用一句话点出用法重点。
-## 近似表达对比
-用表格对比 2～4 个相近表达的差别：含义、语气、使用场合。
-## 口语实战
-${lang === 'ja' ? '日本人' : '美国人'}在日常口语里怎么用、多常用、有哪些缩约或变体，什么场合不能用。
-## 注意点
-易混淆点和常见错误。`;
   }
   const role = isTranslation
     ? `这段文本是对下面原文（${LANG_NAME[srcLang]}）的译文，分析时请结合原文，说明翻译处理的方式和地道之处。\n原文：${srcText}\n`
     : '';
-  const vocab = lang === 'ja'
+  const ja = lang === 'ja', en = lang === 'en';
+  const vocab = ja
     ? '先给出整段文本的带读音版本（{漢字|よみ}），再列出 3～8 个重点词：读音、词性、含义、常见搭配或一个短例句。'
-    : lang === 'en'
-      ? '列出 3～6 个重点词或短语：音标、含义、用法说明。'
-      : '列出关键表达并简要说明。';
+    : en ? '列出 3～6 个重点词或短语：音标、含义、用法说明。' : '列出关键表达并简要说明。';
   return `请分析下面这段${L}文本。
 ${role}文本：
 ${text}
 
-按以下结构输出：
+先自行判断它属于下面哪一类，再严格按那一类的结构输出。不要写出你的判断过程，也不要提到「A 类」「B 类」。
+
+【A 类】单词、短语、惯用语、语法句型或句子片段（例如「行かなきゃ」「〜わけにはいかない」「give it a shot」）。学习者想彻底弄懂这个表达本身，要讲透、讲实用：
+## 含义与用法
+核心含义、使用场景、语气色彩（口语还是书面、礼貌程度、情感倾向）。
+## 接续与变形
+${ja ? '接续在哪种形之后、常见变形（否定、过去、礼貌形、缩约形）、固定搭配；如果是缩约形，写出完整形。' : en ? '词形变化、常见搭配和句型结构。' : '常见搭配与结构。'}
+## 例句
+${en ? '3' : '5'} 个例句，覆盖不同场景和语体，每句附中文翻译，并用一句话点出用法重点。
+## 近似表达对比
+用表格对比 2～4 个相近表达：含义、语气、使用场合。
+## 口语实战
+${ja ? '日本人' : en ? '美国人' : '母语者'}日常实际怎么用、多常用、有哪些缩约或变体，什么场合不能用。
+## 注意点
+易混淆点和中国学习者的常见错误。
+
+【B 类】完整的句子或段落。学习者想读懂这句话并学到其中值得学的点：
 ## 读音与重点词
 ${vocab}
 ## 语法与句型
@@ -905,6 +912,7 @@ function renderResults(plan) {
         <button class="sbtn" data-act="copy" title="复制">${ICONS.copy}</button>
         <button class="sbtn" data-act="speak" title="朗读">${ICONS.speak}</button>
         <button class="sbtn" data-act="analyze" title="词汇与语法分析">${ICONS.analyze}</button>
+        <button class="sbtn" data-act="fav" title="收藏">${ICONS.starO}</button>
       </div>
       <div class="analysis" hidden>
         <div class="ahead"><span class="atitle">译文分析</span><span class="astatus"></span><button class="aclose">收起</button></div>
@@ -912,6 +920,7 @@ function renderResults(plan) {
       </div>`;
     wrap.appendChild(el);
   }
+  updateFavButtons();
 }
 function renderPlaceholder(plan) {
   renderResults(plan);
@@ -950,7 +959,7 @@ async function translate() {
   renderResults(plan);
   hideSrcAnalysis(true);
   const tasks = plan.map(box => runBox(box, text, lang, runId, item));
-  if (isShortPhrase(text, lang)) analyze('src', 'deep');
+  if (isShortPhrase(text, lang)) analyze('src');
   await Promise.all(tasks);
 }
 async function runBox(box, text, lang, runId, item) {
@@ -1009,14 +1018,14 @@ async function analyze(target, mode = 'normal', { toggle = false } = {}) {
 
   const isSrc = target === 'src';
   let text, lang;
-  if (isSrc) { text = item.src; lang = item.lang; if (lang === 'zh') mode = 'deep'; }
+  if (isSrc) { text = item.src; lang = item.lang; }
   else {
     text = item.outputs[target]; lang = state.plan.find(b => b.key === target)?.lang;
     if (!text) { toast('等译文出来再分析'); return; }
   }
 
   panel.hidden = false;
-  titleEl.textContent = isSrc ? (mode === 'deep' ? (lang === 'zh' ? '对应说法' : '语法深究') : '原文分析') : '译文分析';
+  titleEl.textContent = isSrc ? (lang === 'zh' ? '对应说法' : '原文分析') : '译文分析';
 
   const cached = item.analyses[target];
   if (cached && cached.mode === mode && cached.md) {
@@ -1033,7 +1042,7 @@ async function analyze(target, mode = 'normal', { toggle = false } = {}) {
   try {
     await streamChat({
       system: anaSystem(),
-      user: anaUser({ text: stripRuby(text), lang, mode, isTranslation: !isSrc, srcText: item.src, srcLang: item.lang }),
+      user: anaUser({ text: stripRuby(text), lang, isTranslation: !isSrc, srcText: item.src, srcLang: item.lang }),
       think: settings.thinkAna, maxTokens: 8192, signal: ac.signal,
       onDelta: d => { acc += d; st.textContent = ''; mdEl.innerHTML = md(acc); },
       onReasoning: () => { if (!acc) st.textContent = '思考中…'; }
@@ -1053,32 +1062,72 @@ async function analyze(target, mode = 'normal', { toggle = false } = {}) {
 }
 
 /* ---------- 朗读 ---------- */
-let voicesReady = false;
-if ('speechSynthesis' in window) {
-  speechSynthesis.onvoiceschanged = () => { voicesReady = true; };
-  speechSynthesis.getVoices();
-}
+const tts = { utter: null, btn: null, keep: null };   // 保持对当前朗读的引用，避免被浏览器回收后中途失效
+let voiceList = [];
+function loadVoices() { if ('speechSynthesis' in window) voiceList = speechSynthesis.getVoices(); }
+if ('speechSynthesis' in window) { loadVoices(); speechSynthesis.addEventListener('voiceschanged', loadVoices); }
+const VOICE_PREFER = {
+  ja: ['Kyoko', 'O-ren', 'Otoya', 'Hattori', 'Haruka', 'Ayumi', 'Nanami'],
+  zh: ['Tingting', 'Ting-Ting', 'Lili', 'Meijia', 'Yaoyao', 'Xiaoxiao'],
+  en: ['Samantha', 'Ava', 'Allison', 'Alex', 'Zira', 'Aria', 'Jenny']
+};
 function pickVoice(lang) {
-  const voices = speechSynthesis.getVoices();
-  const target = SPEECH_LANG[lang];
-  const prefix = target.split('-')[0];
-  const cands = voices.filter(v => v.lang.replace('_', '-').toLowerCase().startsWith(prefix));
+  if (!voiceList.length) loadVoices();
+  const target = (SPEECH_LANG[lang] || 'en-US').toLowerCase(), prefix = target.split('-')[0];
+  const norm = v => v.lang.replace('_', '-').toLowerCase();
+  const cands = voiceList.filter(v => norm(v).startsWith(prefix));
   if (!cands.length) return null;
-  const prefer = ['Kyoko', 'Otoya', 'O-ren', 'Hattori', 'Google 日本語', 'Samantha', 'Ava', 'Allison', 'Google US English', 'Tingting', 'Ting-Ting', 'Meijia', 'Google 普通话'];
-  for (const p of prefer) { const v = cands.find(c => c.name.includes(p)); if (v) return v; }
-  return cands.find(v => v.lang.replace('_', '-').toLowerCase() === target.toLowerCase()) || cands[0];
+  const prefer = VOICE_PREFER[lang] || [];
+  const score = v => {
+    let sc = 0;
+    if (v.localService) sc += 100;                 // 本机语音最可靠；联网语音（Google …）经常静默失败
+    if (norm(v) === target) sc += 10;
+    const k = prefer.findIndex(n => v.name.includes(n)); if (k >= 0) sc += 50 - k;
+    return sc;
+  };
+  return cands.slice().sort((a, b) => score(b) - score(a))[0];
 }
-function speak(text, lang) {
+function setSpeakBtn(btn, on) { if (btn) btn.classList.toggle('on', on); }
+function speak(text, lang, btn) {
   if (!('speechSynthesis' in window)) { toast('此浏览器不支持朗读'); return; }
-  const t = stripRuby(text).trim(); if (!t) return;
-  speechSynthesis.cancel();
+  const t = stripRuby(text || '').trim(); if (!t) { toast('还没有可朗读的内容'); return; }
+  const synth = speechSynthesis;
+  if (btn && tts.btn === btn && (synth.speaking || synth.pending)) { stopSpeak(); return; }   // 再点一次 = 停止
   const u = new SpeechSynthesisUtterance(t);
   u.lang = SPEECH_LANG[lang] || 'en-US';
   const v = pickVoice(lang); if (v) u.voice = v;
   u.rate = lang === 'ja' ? 0.95 : 1;
-  speechSynthesis.speak(u);
+  const done = () => { if (tts.utter === u) { clearInterval(tts.keep); setSpeakBtn(tts.btn, false); tts.utter = null; tts.btn = null; } };
+  u.onend = done;
+  u.onerror = e => { done(); if (e.error && !/interrupted|canceled/.test(e.error)) toast('朗读失败：' + e.error); };
+  const busy = synth.speaking || synth.pending || synth.paused;
+  stopSpeak();
+  tts.utter = u; tts.btn = btn; setSpeakBtn(btn, true);
+  const go = () => {
+    if (tts.utter !== u) return;
+    if (synth.paused) synth.resume();
+    synth.speak(u);
+    // 桌面版 Chrome 长句朗读约 15 秒会卡住，定时 pause/resume 保活
+    const ua = navigator.userAgent;
+    if (/Chrome/.test(ua) && !/Mobile|Android/.test(ua)) {
+      clearInterval(tts.keep);
+      tts.keep = setInterval(() => { if (!synth.speaking) { clearInterval(tts.keep); return; } synth.pause(); synth.resume(); }, 10000);
+    }
+  };
+  // 刚 cancel 完立刻 speak 会被浏览器丢掉，正在朗读时稍等一下再开始
+  if (busy) setTimeout(go, 150); else go();
 }
-function stopSpeak() { if ('speechSynthesis' in window) speechSynthesis.cancel(); }
+function stopSpeak() {
+  if (!('speechSynthesis' in window)) return;
+  clearInterval(tts.keep); setSpeakBtn(tts.btn, false);
+  tts.utter = null; tts.btn = null;
+  speechSynthesis.cancel();
+}
+function visibleText(el) { if (!el) return ''; const c = el.cloneNode(true); c.querySelectorAll('rt,.err').forEach(n => n.remove()); return c.textContent; }
+function updateFavButtons() {
+  const on = !!state.current?.fav;
+  $$('#results [data-act=fav]').forEach(b => { b.classList.toggle('on', on); b.innerHTML = on ? ICONS.star : ICONS.starO; b.title = on ? '取消收藏' : '收藏'; });
+}
 
 /* ---------- 历史与收藏 ---------- */
 function persistHistory() { saveJSON(LS.history, history); saveJSON(LS.deleted, deleted.slice(-1000)); scheduleSync(); }
@@ -1106,7 +1155,7 @@ function removeHistory(id) {
 function toggleFav(id) {
   const h = history.find(x => x.id === id); if (!h) return;
   h.fav = !h.fav; h.updated = now();
-  if (state.current && state.current.id === id) state.current.fav = h.fav;
+  if (state.current && state.current.id === id) { state.current.fav = h.fav; updateFavButtons(); }
   persistHistory(); renderHistory();
   toast(h.fav ? '已收藏' : '已取消收藏');
 }
@@ -1115,7 +1164,7 @@ function renderHistory() {
   const q = $('#hsearch').value.trim().toLowerCase();
   let items = history.filter(h => state.drawerTab === 'fav' ? h.fav : true);
   if (q) items = items.filter(h => (h.src + ' ' + Object.values(h.outputs || {}).join(' ')).toLowerCase().includes(q));
-  if (!items.length) { list.innerHTML = `<div class="empty">${state.drawerTab === 'fav' ? '还没有收藏。点记录右侧的星星即可收藏。' : '还没有记录。'}</div>`; return; }
+  if (!items.length) { list.innerHTML = `<div class="empty">${state.drawerTab === 'fav' ? '还没有收藏。点翻译结果右下角的 ☆ 就能收藏。' : '还没有记录。'}</div>`; return; }
   list.innerHTML = items.map(h => {
     const first = Object.values(h.outputs || {})[0] || '';
     return `<div class="hitem" data-id="${h.id}">
@@ -1382,13 +1431,17 @@ function importBackup(file) {
 }
 
 /* ---------- 抽屉 ---------- */
-function openDrawer() { renderHistory(); $('#drawer').classList.add('show'); $('#scrim').classList.add('show'); }
+function openDrawer(tab = 'history') {
+  state.drawerTab = tab; $('#drawerTitle').textContent = tab === 'fav' ? '收藏' : '历史记录';
+  $('#hsearch').value = ''; $('#hsearch').placeholder = tab === 'fav' ? '搜索收藏…' : '搜索历史记录…';
+  renderHistory(); $('#drawer').classList.add('show'); $('#scrim').classList.add('show');
+}
 function closeDrawer() { $('#drawer').classList.remove('show'); $('#scrim').classList.remove('show'); }
 
 /* ---------- 输入框 ---------- */
 const srcEl = $('#src');
 function autosize() { srcEl.style.height = 'auto'; srcEl.style.height = Math.min(srcEl.scrollHeight, innerHeight * 0.5) + 'px'; }
-function updateCount() { const n = srcEl.value.length; $('#count').textContent = n ? `${n} 字` : ''; }
+function updateCount() { const n = srcEl.value.length; $('#count').textContent = n ? `${n} 字` : ''; $('#btnClear').hidden = !n; }
 let typingTimer = null;
 function onInput() {
   autosize(); updateCount();
@@ -1402,20 +1455,19 @@ function onInput() {
 
 /* ---------- 事件绑定 ---------- */
 function bind() {
-  $('#btnHistory').innerHTML = ICONS.history; $('#btnTheme').innerHTML = ICONS.theme; $('#btnSettings').innerHTML = ICONS.settings;
+  $('#btnHistory').innerHTML = ICONS.history; $('#btnFav').innerHTML = ICONS.starO; $('#btnSettings').innerHTML = ICONS.settings;
   $('#btnCloseDrawer').innerHTML = ICONS.close;
-  $('#btnClear').innerHTML = ICONS.clear + '<span class="lbl">清空</span>'; $('#btnSpeakSrc').innerHTML = ICONS.speak + '<span class="lbl">朗读</span>';
-  $('#btnAnalyzeSrc').innerHTML = ICONS.analyze + '<span class="lbl">分析</span>'; $('#btnDeep').innerHTML = ICONS.deep + '<span class="lbl">深究</span>';
+  $('#btnClear').innerHTML = ICONS.close; $('#btnSpeakSrc').innerHTML = ICONS.speak + '<span class="lbl">朗读</span>';
+  $('#btnAnalyzeSrc').innerHTML = ICONS.analyze + '<span class="lbl">分析</span>';
 
   srcEl.addEventListener('input', onInput);
   srcEl.addEventListener('keydown', e => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); clearTimeout(typingTimer); translate(); }
   });
   $('#btnTranslate').onclick = () => { clearTimeout(typingTimer); translate(); };
-  $('#btnClear').onclick = () => { srcEl.value = ''; onInput(); srcEl.focus(); };
-  $('#btnSpeakSrc').onclick = () => { const t = srcEl.value.trim(); if (!t) return; speak(t, effectiveLang(t) || 'en'); };
+  $('#btnClear').onclick = () => { stopSpeak(); srcEl.value = ''; onInput(); srcEl.focus(); };
+  $('#btnSpeakSrc').onclick = () => { const t = srcEl.value.trim(); if (!t) return; speak(t, effectiveLang(t) || 'en', $('#btnSpeakSrc')); };
   $('#btnAnalyzeSrc').onclick = () => ensureCurrent(() => analyze('src', 'normal', { toggle: true }));
-  $('#btnDeep').onclick = () => ensureCurrent(() => analyze('src', 'deep'));
   $('#srcAnalysis .aclose').onclick = () => { $('#srcAnalysis').hidden = true; };
 
   $$('#langSeg button').forEach(b => b.onclick = () => {
@@ -1432,21 +1484,21 @@ function bind() {
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (e.target.closest('.aclose')) { card.querySelector('.analysis').hidden = true; return; }
     if (e.target.closest('.analysis')) return;
-    const text = state.current?.outputs[key];
-    if (act === 'copy') { if (!text) return; navigator.clipboard?.writeText(stripRuby(text)).then(() => toast('已复制')).catch(() => toast('复制失败')); return; }
-    if (act === 'speak') { if (!text) return; speak(text, lang); return; }
+    const text = state.current?.outputs[key] || visibleText(card.querySelector('.out'));
+    if (act === 'copy') { if (!text.trim()) return; navigator.clipboard?.writeText(stripRuby(text)).then(() => toast('已复制')).catch(() => toast('复制失败')); return; }
+    if (act === 'speak') { speak(text, lang, e.target.closest('[data-act]')); return; }
+    if (act === 'fav') {
+      const it = state.current; if (!it) return;
+      it.fav = !it.fav; it.updated = now(); upsertHistory(it); updateFavButtons();
+      toast(it.fav ? '已收藏，可在顶部 ☆ 里查看' : '已取消收藏'); return;
+    }
     if (act === 'analyze' || e.target.closest('.body')) { if (!card.classList.contains('done')) return; analyze(key, 'normal', { toggle: true }); }
   });
 
   $('#btnFuri').onclick = () => { settings.furi = !settings.furi; saveJSON(LS.settings, settings); applyFuri(); toast(settings.furi ? '显示振假名' : '隐藏振假名', 1200); };
-  $('#btnTheme').onclick = () => {
-    const order = ['auto', 'light', 'dark']; settings.theme = order[(order.indexOf(settings.theme) + 1) % 3];
-    saveJSON(LS.settings, settings); applyTheme(); toast({ auto: '主题：跟随系统', light: '主题：浅色', dark: '主题：深色' }[settings.theme], 1200);
-  };
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
 
-  $('#btnHistory').onclick = openDrawer; $('#btnCloseDrawer').onclick = closeDrawer; $('#scrim').onclick = closeDrawer;
-  $$('.tabs button').forEach(b => b.onclick = () => { state.drawerTab = b.dataset.tab; $$('.tabs button').forEach(x => x.classList.toggle('on', x === b)); renderHistory(); });
+  $('#btnHistory').onclick = () => openDrawer('history'); $('#btnFav').onclick = () => openDrawer('fav'); $('#btnCloseDrawer').onclick = closeDrawer; $('#scrim').onclick = closeDrawer;
   $('#hsearch').addEventListener('input', renderHistory);
   $('#hlist').addEventListener('click', e => {
     const it = e.target.closest('.hitem'); if (!it) return;
