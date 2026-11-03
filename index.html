@@ -78,6 +78,7 @@ textarea#src::placeholder{color:var(--muted);opacity:.8}
 .tbtn:hover{background:var(--accent-weak)}
 .tbtn svg{width:21px;height:21px;fill:currentColor}
 .tbtn.on{background:var(--accent-weak)}
+.tbtn.faved{color:#f9ab00}
 .tbtn:disabled{opacity:.4;cursor:default}
 @media(max-width:600px){.count{display:none}.card-foot{justify-content:flex-end}.tbtn{padding:9px 10px}}
 @media(max-width:340px){.tbtn .lbl{display:none}}
@@ -281,7 +282,8 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
       <span class="count" id="count"></span>
       <button class="tbtn" id="btnSpeakSrc" title="朗读原文"></button>
       <button class="tbtn" id="btnAnalyzeSrc" title="分析原文的词汇与语法"></button>
-      <button class="pbtn" id="btnTranslate">翻译</button>
+      <button class="tbtn" id="btnFavSrc" title="收藏这条"></button>
+      <button class="pbtn" id="btnTranslate" hidden>翻译</button>
     </div>
     <div class="analysis" id="srcAnalysis" hidden>
       <div class="ahead"><span class="atitle">原文分析</span><span class="astatus"></span><button class="aclose">收起</button></div>
@@ -396,7 +398,7 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
 /* ============================================================
    译学 · 单文件应用
    ============================================================ */
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.2.1';
 const LS = { settings: 'yx.settings', history: 'yx.history', deleted: 'yx.deleted', lastSync: 'yx.lastSync' };
 /* 支持的模型接口。模型列表可在设置里从各家接口实时拉取，这里只是默认候选。 */
 const PROVIDERS = {
@@ -1124,8 +1126,15 @@ function stopSpeak() {
   speechSynthesis.cancel();
 }
 function visibleText(el) { if (!el) return ''; const c = el.cloneNode(true); c.querySelectorAll('rt,.err').forEach(n => n.remove()); return c.textContent; }
+function toggleCurrentFav() {
+  const it = state.current; if (!it) return;
+  it.fav = !it.fav; it.updated = now(); upsertHistory(it); updateFavButtons();
+  toast(it.fav ? '已收藏，可在顶部 ☆ 里查看' : '已取消收藏');
+}
 function updateFavButtons() {
   const on = !!state.current?.fav;
+  const fb = $('#btnFavSrc');
+  if (fb) { fb.innerHTML = (on ? ICONS.star : ICONS.starO) + `<span class="lbl">${on ? '已收藏' : '收藏'}</span>`; fb.classList.toggle('faved', on); fb.title = on ? '取消收藏' : '收藏这条'; }
   $$('#results [data-act=fav]').forEach(b => { b.classList.toggle('on', on); b.innerHTML = on ? ICONS.star : ICONS.starO; b.title = on ? '取消收藏' : '收藏'; });
 }
 
@@ -1355,7 +1364,7 @@ function saveSettings() {
   if (settings.gistToken !== prevToken) settings.gistId = '';
   saveJSON(LS.settings, settings);
   applyTheme(); updatePill();
-  $('#banner').hidden = hasKey();
+  $('#banner').hidden = hasKey(); $('#btnTranslate').hidden = settings.auto;
   closeSettings();
   toast('设置已保存 · 当前：' + modelLabel());
   if (settings.gistToken) syncNow(false);
@@ -1449,7 +1458,7 @@ function onInput() {
   const lang = effectiveLang(text);
   setDetected(lang, state.lang !== 'auto');
   clearTimeout(typingTimer);
-  if (!text) { cancelRun(); $('#results').innerHTML = ''; hideSrcAnalysis(true); state.current = null; state.lastTranslated = ''; return; }
+  if (!text) { cancelRun(); $('#results').innerHTML = ''; hideSrcAnalysis(true); state.current = null; state.lastTranslated = ''; updateFavButtons(); return; }
   if (settings.auto) typingTimer = setTimeout(() => { if (srcEl.value.trim() !== state.lastTranslated) translate(); }, 1000);
 }
 
@@ -1467,6 +1476,7 @@ function bind() {
   $('#btnTranslate').onclick = () => { clearTimeout(typingTimer); translate(); };
   $('#btnClear').onclick = () => { stopSpeak(); srcEl.value = ''; onInput(); srcEl.focus(); };
   $('#btnSpeakSrc').onclick = () => { const t = srcEl.value.trim(); if (!t) return; speak(t, effectiveLang(t) || 'en', $('#btnSpeakSrc')); };
+  $('#btnFavSrc').onclick = () => ensureCurrent(toggleCurrentFav);
   $('#btnAnalyzeSrc').onclick = () => ensureCurrent(() => analyze('src', 'normal', { toggle: true }));
   $('#srcAnalysis .aclose').onclick = () => { $('#srcAnalysis').hidden = true; };
 
@@ -1487,11 +1497,7 @@ function bind() {
     const text = state.current?.outputs[key] || visibleText(card.querySelector('.out'));
     if (act === 'copy') { if (!text.trim()) return; navigator.clipboard?.writeText(stripRuby(text)).then(() => toast('已复制')).catch(() => toast('复制失败')); return; }
     if (act === 'speak') { speak(text, lang, e.target.closest('[data-act]')); return; }
-    if (act === 'fav') {
-      const it = state.current; if (!it) return;
-      it.fav = !it.fav; it.updated = now(); upsertHistory(it); updateFavButtons();
-      toast(it.fav ? '已收藏，可在顶部 ☆ 里查看' : '已取消收藏'); return;
-    }
+    if (act === 'fav') { toggleCurrentFav(); return; }
     if (act === 'analyze' || e.target.closest('.body')) { if (!card.classList.contains('done')) return; analyze(key, 'normal', { toggle: true }); }
   });
 
@@ -1558,7 +1564,7 @@ function ensureCurrent(fn) {
 function init() {
   bind();
   applyTheme(); applyFuri();
-  $('#banner').hidden = hasKey(); updatePill();
+  $('#banner').hidden = hasKey(); updatePill(); updateFavButtons(); $('#btnTranslate').hidden = settings.auto;
   $('#verLine').textContent = '译学 v' + APP_VERSION;
   autosize(); updateCount();
   // URL 参数：?q=文本（方便从其他地方跳转）
